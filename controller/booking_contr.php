@@ -615,6 +615,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         case 'get_user_booking_status':
             $user_id = $_POST['user_id'] ?? null;
+
+
             if (!$user_id) {
                 response(['status' => 'error', 'message' => 'User ID is required']);
             }
