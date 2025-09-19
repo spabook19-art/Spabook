@@ -33,7 +33,7 @@
 
   } else {
     await supabase.auth.signOut();
-    window.location.href = '../index.php';
+    window.location.href = '../../index.php';
   }
 
   window.dispatchEvent(new Event('user_id_ready'));

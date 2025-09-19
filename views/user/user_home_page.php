@@ -128,28 +128,23 @@ include_once '../../helper/user_apps.php' ?>
                     }
 
                     html += `
-                            <div class="col-12 col-sm-6 col-md-4 col-lg-3 d-flex">
-                                <div class="service-card spa-card d-flex flex-column align-items-center w-100 p-3"
-                                    style="cursor:pointer; border:2px solid #c0967e; min-width:0;"
-                                    data-service-id="${service.id}"
-                                    data-service-name="${service.service_name}"
-                                    data-service-price="${service.price}"
-                                    data-service-description="${service.description}"
-                                    data-service-image="${imageSrc}">
-                                    <img src="${imageSrc}"
-                                        class="spa-card-img rounded-4 mb-3"
-                                        style="width:140px; height:140px; object-fit:cover; background:#f8f8f8; border:3px solid #c0967e;"
-                                        alt="${service.service_name}"
-                                        onerror="this.src='../../vendor/images/headMassage.png'">
-                                    <h4 class="mb-2 fw-bold spa-title text-center" style="font-size:1.25rem; letter-spacing:1px;">
-                                        ${service.service_name}
-                                    </h4>
-                                    <div class="fw-bold text-success mb-2 text-center" style="font-size:1.1rem;">
-                                        ₱${service.price} <span class="text-muted fw-normal" style="font-size:1rem;">/ ${service.per_minute} min</span>
-                                    </div>
-                                    <div class="spa-desc text-center" style="font-size:1.07rem; color:#444;">${service.description}</div>
+                            <div class="service-card" data-service-id="${service.id}" data-service-name="${service.service_name}" data-service-price="${service.price}" data-service-description="${service.description}" data-service-image="${imageSrc}">
+                            <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden position-relative">
+                                <img src="${imageSrc}"
+                                    class="card-img-top img-fluid"
+                                    style="height: 120px; object-fit: cover;"
+                                    alt="${service.service_name}"
+                                    onerror="this.src='../vendor/images/headMassage.png'">
+
+                                <div class="card-body bg-white">
+                                    <h5 class="card-title">${service.service_name}</h5>
+                                    <p class="card-text small mb-2">${service.description}</p>
+                                    <p class="card-text fw-bold text-primary mb-0">
+                                        ₱ ${service.price} / ${service.per_minute} min
+                                    </p>
                                 </div>
                             </div>
+                        </div>
                         `;
                 });
                 $('#services_container').html(html);
@@ -492,108 +487,192 @@ include_once '../../helper/user_apps.php' ?>
 
 <style>
     /* Modern hover effect for service cards */
-    .service-card {
-        transition:
-            box-shadow 0.3s cubic-bezier(.4, 2, .6, 1),
-            transform 0.2s cubic-bezier(.4, 2, .6, 1),
-            border-color 0.3s;
-        box-shadow: 0 2px 12px rgba(192, 150, 126, 0.08);
-        border: 2px solid #c0967e;
-        background: #fff;
-        position: relative;
-        z-index: 1;
-        min-width: 0;
+
+    .responsive-col {
+        flex: 0 0 100%;
     }
 
-    .service-card:hover,
-    .service-card:focus-within {
-        box-shadow: 0 8px 32px 0 rgba(192, 150, 126, 0.25), 0 1.5px 8px 0 rgba(0, 0, 0, 0.08);
-        transform: translateY(-6px) scale(1.03);
-        border-color: #a87d4a;
-        background: linear-gradient(135deg, #fff8f3 0%, #f9e7d3 100%);
-        z-index: 2;
+    .service-img-wrapper {
+        width: 100%;
+        height: 150px;
+        overflow: hidden;
+        border-radius: 0.5rem 0.5rem 0 0;
     }
 
-    .service-card img {
-        transition: box-shadow 0.3s, transform 0.3s;
+    .service-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
     }
 
-    .service-card:hover img {
-        box-shadow: 0 4px 24px 0 rgba(200, 150, 100, 0.18);
-        transform: scale(1.07) rotate(-2deg);
-    }
-
-    .service-card h4,
-    .service-card h5 {
-        transition: color 0.2s, text-shadow 0.2s;
-    }
-
-    .service-card:hover h4,
-    .service-card:hover h5 {
-        color: #a87d4a !important;
-        text-shadow: 0 2px 8px #fff2e0;
-    }
-
-    .spa-card {
-        background: #fffdfa;
-        border-radius: 1.5rem;
-        box-shadow: 0 2px 12px rgba(192, 150, 126, 0.08);
-        transition: box-shadow 0.3s, transform 0.2s, border-color 0.3s, background 0.3s;
-        border: 2px solid #c0967e;
-        position: relative;
-        z-index: 1;
-    }
-
-    .spa-card:hover,
-    .spa-card:focus-within {
-        box-shadow: 0 8px 32px 0 rgba(192, 150, 126, 0.18), 0 1.5px 8px 0 rgba(0, 0, 0, 0.08);
-        transform: translateY(-4px) scale(1.025);
-        border-color: #a87d4a;
-        background: linear-gradient(135deg, #fff8f3 0%, #f9e7d3 100%);
-        z-index: 2;
-    }
-
-    .spa-card-img {
-        transition: box-shadow 0.3s, transform 0.3s;
-        box-shadow: 0 2px 8px rgba(192, 150, 126, 0.10);
-    }
-
-    .spa-card:hover .spa-card-img {
-        box-shadow: 0 8px 24px 0 rgba(200, 150, 100, 0.18);
-        transform: scale(1.06) rotate(-1.5deg);
-    }
-
-    .spa-title {
-        color: #a87d4a !important;
-        background: linear-gradient(90deg, #fff8f3 60%, #f9e7d3 100%);
-        padding: 0.25em 0.7em;
-        border-radius: 0.7em;
-        display: inline-block;
-        box-shadow: 0 1px 4px #fff2e0;
-        transition: color 0.2s, background 0.2s, box-shadow 0.2s;
-    }
-
-    .spa-card:hover .spa-title {
-        color: #fff !important;
-        background: linear-gradient(90deg, #a87d4a 60%, #c0967e 100%);
-        box-shadow: 0 2px 12px #f9e7d3;
-    }
-
-    .spa-desc {
-        min-height: 3em;
-        white-space: pre-line;
-    }
-
-    @media (max-width: 767.98px) {
-        .spa-card {
-            flex-direction: column !important;
-            align-items: center !important;
-            text-align: center;
+    @media (min-width: 576px) {
+        .responsive-col {
+            flex: 0 0 50%;
         }
 
-        .spa-card-img {
-            margin-right: 0 !important;
-            margin-bottom: 1rem;
+        /* .service-img-wrapper {
+        height: 100%;
+    } */
+    }
+
+
+    @media (min-width: 768px) {
+        .responsive-col {
+            flex: 0 0 33.3333%;
+        }
+
+        /* .service-img-wrapper {
+        height: 100%
+    } */
+    }
+
+
+    @media (min-width: 992px) {
+        .responsive-col {
+            flex: 0 0 33.3333%;
+        }
+    }
+
+    @media (min-width: 1200px) {
+        .responsive-col {
+            flex: 0 0 33.3333%;
+        }
+    }
+
+    #services_container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .service-card {
+        flex: 1 1 250px;
+        /* grow, shrink, base width */
+        max-width: 100%;
+        min-width: 200px;
+    }
+
+    .card:hover {
+        border-radius: 1.5rem;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 1) !important;
+        transition: box-shadow 0.2s ease-in-out;
+    }
+
+    .card-img-top {
+        height: 120px;
+        object-fit: cover;
+    }
+
+    .card-body {
+        padding: 1rem;
+    }
+
+    .booking-status-scroll ul,
+    .recent-services-scroll ul {
+        overflow-y: auto;
+        max-height: 25vh;
+        padding-right: 8px;
+        scrollbar-width: thin;
+        scrollbar-color: #ccc transparent;
+    }
+
+    .booking-status-scroll ul::-webkit-scrollbar,
+    .recent-services-scroll ul::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .booking-status-scroll ul::-webkit-scrollbar-thumb,
+    .recent-services-scroll ul::-webkit-scrollbar-thumb {
+        background-color: #ccc;
+        border-radius: 3px;
+    }
+
+    /* Empty state styling */
+    .list-group-item.text-center.text-muted {
+        border: 1px dashed #dee2e6;
+        background-color: #f8f9fa;
+    }
+
+    .list-group-item.text-center.text-danger {
+        border: 1px dashed #dc3545;
+        background-color: #f8d7da;
+    }
+
+    @media (max-width: 991.98px) {
+
+        .col-lg-8,
+        .col-lg-4 {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+
+        .service-card {
+            flex: 1 1 100%;
+        }
+
+        /* Adjust section heights on mobile */
+        .booking-status-scroll ul,
+        .recent-services-scroll ul {
+            max-height: 20vh;
+        }
+    }
+
+    /* Status badge animations */
+    .badge {
+        transition: all 0.2s ease-in-out;
+    }
+
+    .badge:hover {
+        transform: scale(1.05);
+    }
+
+    /* List item hover effects */
+    .list-group-item {
+        transition: background-color 0.2s ease-in-out;
+    }
+
+    .list-group-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    /* Service card hover effects */
+    .service-card {
+        cursor: pointer;
+        transition: all 0.3s ease-in-out;
+    }
+
+    .service-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .service-card.selected {
+        border: 2px solid #007bff;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+    }
+
+    /* Checkout button enhancement */
+    .btn:contains("Check-out") {
+        font-weight: 600;
+        transition: all 0.2s ease-in-out;
+    }
+
+    .btn-success:contains("Check-out") {
+        box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+        }
+
+        50% {
+            box-shadow: 0 4px 8px rgba(40, 167, 69, 0.5);
+        }
+
+        100% {
+            box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
         }
     }
 </style>

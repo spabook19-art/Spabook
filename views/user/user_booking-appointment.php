@@ -1,26 +1,31 @@
 <style>
-.spin {
-    animation: spin 1s linear infinite;
-}
+    .spin {
+        animation: spin 1s linear infinite;
+    }
 
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
+    @keyframes spin {
+        from {
+            transform: rotate(0deg);
+        }
 
-.service-card {
-    transition: transform 0.2s ease-in-out;
-    cursor: pointer;
-}
+        to {
+            transform: rotate(360deg);
+        }
+    }
 
-.service-card:hover {
-    transform: translateY(-2px);
-}
+    .service-card {
+        transition: transform 0.2s ease-in-out;
+        cursor: pointer;
+    }
 
-.service-card.selected {
-    border-color: #0d6efd !important;
-    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25) !important;
-}
+    .service-card:hover {
+        transform: translateY(-2px);
+    }
+
+    .service-card.selected {
+        border-color: #0d6efd !important;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25) !important;
+    }
 </style>
 
 <div class="container-fluid h-100 overflow-hidden overflow-auto">
@@ -35,7 +40,7 @@
         <!-- Right Side: Status and Recent Services -->
         <div class="col-lg-4 col-md-5 col-sm-12">
             <button class="btn btn-primary w-100 mb-3">Check-out</button>
-            
+
             <!-- Booking Status Section -->
             <div class="card mb-3" style="background-color: transparent; border: none;">
                 <div class="card-header bg-primary text-white">
@@ -68,12 +73,12 @@
 
 <script>
     // Load data when document is ready
-    $(document).ready(function () {
+    $(document).ready(function() {
         loadServices();
         loadBookingStatus();
         loadRecentServices();
     });
-    
+
     // Also load data when this page becomes visible
     document.addEventListener('visibilitychange', function() {
         if (document.visibilityState === 'visible') {
@@ -83,7 +88,7 @@
             loadRecentServices();
         }
     });
-    
+
     // Create a global function to reload services that can be called from other pages
     window.reloadBookingServices = function() {
         loadServices();
@@ -170,7 +175,7 @@
             },
             success: function(result) {
                 let statusHtml = '';
-                
+
                 if (result === 'nodata' || !result || result.length === 0) {
                     statusHtml = `
                         <li class="list-group-item text-center text-muted py-4">
@@ -182,7 +187,7 @@
                     result.forEach(booking => {
                         const statusClass = getStatusClass(booking.status);
                         const statusIcon = getStatusIcon(booking.status);
-                        
+
                         statusHtml += `
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <div>
@@ -199,7 +204,7 @@
                         `;
                     });
                 }
-                
+
                 $('#bookingStatusList').html(statusHtml);
             },
             error: function() {
@@ -229,7 +234,7 @@
             },
             success: function(result) {
                 let servicesHtml = '';
-                
+
                 if (result === 'nodata' || !result || result.length === 0) {
                     servicesHtml = `
                         <li class="list-group-item text-center text-muted py-4">
@@ -244,7 +249,7 @@
                             day: 'numeric',
                             year: 'numeric'
                         });
-                        
+
                         servicesHtml += `
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <div>
@@ -259,7 +264,7 @@
                         `;
                     });
                 }
-                
+
                 $('#recentServicesList').html(servicesHtml);
             },
             error: function() {
@@ -275,26 +280,36 @@
 
     // Helper functions for status styling
     function getStatusClass(status) {
-        switch(status?.toLowerCase()) {
-            case 'pending': return 'bg-warning text-dark';
-            case 'confirmed': 
-            case 'accepted': return 'bg-success';
-            case 'completed': return 'bg-primary';
-            case 'cancelled': 
-            case 'rejected': return 'bg-danger';
-            default: return 'bg-secondary';
+        switch (status?.toLowerCase()) {
+            case 'pending':
+                return 'bg-warning text-dark';
+            case 'confirmed':
+            case 'accepted':
+                return 'bg-success';
+            case 'completed':
+                return 'bg-primary';
+            case 'cancelled':
+            case 'rejected':
+                return 'bg-danger';
+            default:
+                return 'bg-secondary';
         }
     }
 
     function getStatusIcon(status) {
-        switch(status?.toLowerCase()) {
-            case 'pending': return 'bi-clock';
-            case 'confirmed': 
-            case 'accepted': return 'bi-check-circle';
-            case 'completed': return 'bi-check2-all';
-            case 'cancelled': 
-            case 'rejected': return 'bi-x-circle';
-            default: return 'bi-circle';
+        switch (status?.toLowerCase()) {
+            case 'pending':
+                return 'bi-clock';
+            case 'confirmed':
+            case 'accepted':
+                return 'bi-check-circle';
+            case 'completed':
+                return 'bi-check2-all';
+            case 'cancelled':
+            case 'rejected':
+                return 'bi-x-circle';
+            default:
+                return 'bi-circle';
         }
     }
 
@@ -310,10 +325,10 @@
         const servicePrice = $(this).data('service-price');
         const serviceDescription = $(this).data('service-description');
         const serviceImage = $(this).data('service-image');
-        
+
         // Store the selected element reference for visual feedback
         window.selectedServiceElement = $(this);
-        
+
         // Open the booking modal with service details
         showGlobalModal('../views/modal/user_modal-booking.php', {
             id: serviceId,
@@ -329,7 +344,7 @@
         // Always use the global cart reference
         const cart = window.serviceCart || [];
         serviceCart = [...cart]; // Sync local reference with a fresh copy
-        
+
         // Find checkout button with multiple selectors to ensure we get it
         let checkoutBtn = $('.btn-primary:contains("Check-out")');
         if (checkoutBtn.length === 0) {
@@ -338,10 +353,10 @@
         if (checkoutBtn.length === 0) {
             checkoutBtn = $('.btn:contains("Check-out")').first();
         }
-        
+
         const totalItems = cart.length;
         const totalPrice = cart.reduce((sum, service) => sum + (service.price * service.people), 0);
-        
+
         if (totalItems > 0) {
             checkoutBtn.html(`Check-out (${totalItems}) - ₱${totalPrice}`);
             checkoutBtn.removeClass('btn-primary').addClass('btn-success');
@@ -349,7 +364,7 @@
             checkoutBtn.html('Check-out');
             checkoutBtn.removeClass('btn-success').addClass('btn-primary');
         }
-        
+
         console.log('Cart updated - Items:', totalItems, 'Total:', totalPrice); // Debug log
     };
 
@@ -357,7 +372,7 @@
     $(document).on('click', '.btn:contains("Check-out")', function(e) {
         e.preventDefault();
         const currentCart = window.serviceCart || [];
-        
+
         if (currentCart.length === 0) {
             Swal.fire({
                 icon: 'info',
@@ -366,7 +381,7 @@
             });
             return;
         }
-        
+
         // Show checkout modal or proceed to checkout
         showGlobalModal('../views/modal/user_modal-checkout.php', {
             cart: currentCart
@@ -397,8 +412,7 @@
         // Check if this is the old checkout modal (fallback)
         else if ($('#checkoutServiceList').length > 0) {
             populateOldCheckoutModal();
-        } 
-        else if (window.originalOnGlobalModalReady) {
+        } else if (window.originalOnGlobalModalReady) {
             // Call original function for other modals
             window.originalOnGlobalModalReady();
         }
@@ -407,14 +421,14 @@
     // Legacy checkout modal population (fallback)
     function populateOldCheckoutModal() {
         const cart = window.serviceCart || [];
-        
+
         let serviceListHtml = '';
         let total = 0;
-        
+
         cart.forEach((service, index) => {
             const serviceTotal = service.price * service.people;
             total += serviceTotal;
-            
+
             serviceListHtml += `
                 <li class="list-group-item d-flex justify-content-between align-items-start">
                     <div class="flex-grow-1">
@@ -430,16 +444,16 @@
                 </li>
             `;
         });
-        
+
         $('#checkoutServiceList').html(serviceListHtml);
         $('#checkoutTotal').text(`₱${total}`);
-        
+
         // Handle remove service buttons
         $('.remove-service-btn').off('click').on('click', function() {
             const index = $(this).data('index');
             window.serviceCart.splice(index, 1);
             window.updateCheckoutBadge();
-            
+
             if (window.serviceCart.length === 0) {
                 $('#globalModal').modal('hide');
                 Swal.fire({
@@ -505,6 +519,7 @@
             flex: 0 0 33.3333%;
         }
     }
+
     #services_container {
         display: flex;
         flex-wrap: wrap;
@@ -512,7 +527,8 @@
     }
 
     .service-card {
-        flex: 1 1 250px; /* grow, shrink, base width */
+        flex: 1 1 250px;
+        /* grow, shrink, base width */
         max-width: 100%;
         min-width: 200px;
     }
@@ -564,6 +580,7 @@
     }
 
     @media (max-width: 991.98px) {
+
         .col-lg-8,
         .col-lg-4 {
             flex: 0 0 100%;
@@ -627,9 +644,16 @@
     }
 
     @keyframes pulse {
-        0% { box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3); }
-        50% { box-shadow: 0 4px 8px rgba(40, 167, 69, 0.5); }
-        100% { box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3); }
-    }
+        0% {
+            box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+        }
 
+        50% {
+            box-shadow: 0 4px 8px rgba(40, 167, 69, 0.5);
+        }
+
+        100% {
+            box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+        }
+    }
 </style>
