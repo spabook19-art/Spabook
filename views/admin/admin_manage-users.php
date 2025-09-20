@@ -414,7 +414,7 @@ include_once '../../helper/admin_apps.php' ?>
                 <td><small class="text-muted">${joinDate}</small></td>
                 <td>
                     <div class="btn-group btn-group-sm" role="group">
-                        <button class="btn btn-outline-primary" onclick="editUser('${user.user_id}')" title="Edit">
+                        <button class="btn btn-outline-primary" onclick="editUser('${user.user_id}','${user.role}')" title="Edit">
                             <i class="fas fa-edit"></i>
                         </button>
                         <button class="btn btn-outline-info" onclick="viewUser('${user.user_id}')" title="View">
@@ -741,19 +741,16 @@ include_once '../../helper/admin_apps.php' ?>
     });
   }
 
-  function editUser(userId) {
-    const user = regularUsers.find(u => u.user_id === userId);
-    showGlobalModal('../views/modal/admin_modal-edit-user.php', {
-      id: userId,
-      name: user?.full_name,
-      email: user?.email,
-      role: 'User'
+  function editUser(userId, UserRole) {
+    // const user = regularUsers.find(u => u.user_id === userId);
+    showGlobalModal('../../views/modal/admin_modal-edit-user.php', {}, function() {
+      document.querySelector('#editUserForm [name="id"]').value = userId;
     });
   }
 
   function editAdmin(userId) {
     const user = adminUsers.find(u => u.user_id === userId);
-    showGlobalModal('../modal/admin_modal-edit-user.php', {
+    showGlobalModal('../../modal/admin_modal-edit-user.php', {
       id: userId,
       name: user?.full_name,
       email: user?.email,
@@ -763,7 +760,7 @@ include_once '../../helper/admin_apps.php' ?>
 
   function editTherapist(userId) {
     const user = therapistUsers.find(u => u.user_id === userId);
-    showGlobalModal('../modal/admin_modal-edit-user.php', {
+    showGlobalModal('../../modal/admin_modal-edit-user.php', {
       id: userId,
       name: user?.full_name,
       email: user?.email,
@@ -772,34 +769,34 @@ include_once '../../helper/admin_apps.php' ?>
   }
 
   function viewUser(userId) {
-    showGlobalModal('../modal/admin_modal-view-user.php', {
+    showGlobalModal('../../modal/admin_modal-view-user.php', {
       user_id: userId,
       role: 'User'
     });
   }
 
   function viewAdmin(userId) {
-    showGlobalModal('../modal/admin_modal-view-user.php', {
+    showGlobalModal('../../modal/admin_modal-view-user.php', {
       user_id: userId,
       role: 'Admin'
     });
   }
 
   function viewTherapist(userId) {
-    showGlobalModal('../modal/admin_modal-view-user.php', {
+    showGlobalModal('../../modal/admin_modal-view-user.php', {
       user_id: userId,
       role: 'Therapist'
     });
   }
 
   function manageTherapistSchedule(userId) {
-    showGlobalModal('../modal/admin_modal-therapist-schedule.php', {
+    showGlobalModal('../../modal/admin_modal-therapist-schedule.php', {
       user_id: userId
     });
   }
 
   function manageTherapistServices(userId) {
-    showGlobalModal('../modal/admin_modal-therapist-services.php', {
+    showGlobalModal('../../modal/admin_modal-therapist-services.php', {
       user_id: userId
     });
   }

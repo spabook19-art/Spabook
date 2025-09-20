@@ -65,7 +65,7 @@ include_once '../../helper/admin_apps.php' ?>
       console.log('View button clicked for booking ID:', bookingid);
 
       // Use the new modal file in the admin/modal directory
-      showGlobalModal('modal/admin_modal-booking-details.php', {
+      showGlobalModal('../../views/modal/admin_modal-booking-details.php', {
         bookingid: bookingid
       });
     });

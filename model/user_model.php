@@ -179,7 +179,7 @@ class User
             $therapist_role = [];
             if (is_array($users) && count($users) > 0) {
                 // For each user, if they're a therapist, get their services info
-                foreach ($users as &$user) {
+                foreach ($users as $user) {
                     $all_users[] = $user;
                     switch ($user['role']) {
                         case 'User':
