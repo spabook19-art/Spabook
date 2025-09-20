@@ -319,37 +319,70 @@ class BookingModel
             // Get all bookings that are not completed (pending, confirmed)
             $bookings = $php_fetch($bookings_table, '*', ['user_id' => $user_id]);
 
-            if (!$bookings || count($bookings) === 0) {
-                return json_encode('nodata');
-            }
+            // if (!$bookings || count($bookings) === 0) {
+            //     return json_encode('nodata');
+            // }
+            if (!empty($bookings) && isset($bookings[0])) {
+                $result = [];
+                foreach ($bookings as $booking) {
+                    // Only include active bookings (not completed or cancelled)
+                    $status = strtolower($booking['booking_status']);
 
-            $result = [];
-            foreach ($bookings as $booking) {
-                // Only include active bookings (not completed or cancelled)
-                $status = strtolower($booking['booking_status']);
-                if (!in_array($status, ['completed', 'cancelled', 'rejected'])) {
-                    // Get booking details and services for this booking
-                    $booking_details = $php_fetch($booking_details_table, '*', ['booking_id' => $booking['bookingid']]);
+                    // $result[] = [
+                    //     'bookingid' => $booking['bookingid'],
+                    //     'status' => $booking['booking_status']
+                    // ];
+                    if (!in_array($status, ['completed', 'cancelled', 'rejected'])) {
+                        // Get booking details and services for this booking
+                        $booking_details = $php_fetch($booking_details_table, '*', ['booking_id' => $booking['bookingid']]);
 
-                    if ($booking_details) {
-                        foreach ($booking_details as $detail) {
-                            $service = $php_fetch($services_table, 'service_name', ['id' => $detail['service_id']]);
-                            if ($service && count($service) > 0) {
-                                $result[] = [
-                                    'bookingid' => $booking['bookingid'],
-                                    'service_name' => $service[0]['service_name'],
-                                    'status' => $booking['booking_status'],
-                                    'booking_date' => $booking['date_created'],
-                                    'total_amount' => $detail['price'] * $detail['quantity'],
-                                    'quantity' => $detail['quantity']
-                                ];
+                        if ($booking_details) {
+                            foreach ($booking_details as $detail) {
+                                $service = $php_fetch($services_table, 'service_name', ['id' => $detail['service_id']]);
+                                if ($service && count($service) > 0) {
+                                    $result[] = [
+                                        'bookingid' => $booking['bookingid'],
+                                        'service_name' => $service[0]['service_name'],
+                                        'status' => $booking['booking_status'],
+                                        'booking_date' => $booking['date_created'],
+                                        'total_amount' => $detail['price'] * $detail['quantity'],
+                                        'quantity' => $detail['quantity']
+                                    ];
+                                }
                             }
                         }
                     }
                 }
+            } else {
+                return json_encode('nodata');
             }
+            // $result = [];
+            // foreach ($bookings as $booking) {
+            //     // Only include active bookings (not completed or cancelled)
+            //     $status = strtolower($booking['booking_status']);
+            //     if (!in_array($status, ['completed', 'cancelled', 'rejected'])) {
+            //         // Get booking details and services for this booking
+            //         $booking_details = $php_fetch($booking_details_table, '*', ['booking_id' => $booking['bookingid']]);
 
-            return json_encode(count($result) > 0 ? $result : 'nodata');
+            //         if ($booking_details) {
+            //             foreach ($booking_details as $detail) {
+            //                 $service = $php_fetch($services_table, 'service_name', ['id' => $detail['service_id']]);
+            //                 if ($service && count($service) > 0) {
+            //                     $result[] = [
+            //                         'bookingid' => $booking['bookingid'],
+            //                         'service_name' => $service[0]['service_name'],
+            //                         'status' => $booking['booking_status'],
+            //                         'booking_date' => $booking['date_created'],
+            //                         'total_amount' => $detail['price'] * $detail['quantity'],
+            //                         'quantity' => $detail['quantity']
+            //                     ];
+            //                 }
+            //             }
+            //         }
+            //     }
+            // }
+
+            return json_encode($result);
         } catch (Exception $e) {
             error_log("Error in getUserBookingStatus: " . $e->getMessage());
             return json_encode(['status' => 'error', 'message' => $e->getMessage()]);
@@ -403,81 +436,81 @@ class BookingModel
         }
     }
 
-    public function getBookingServicesForCompletion($php_fetch, $bookingid)
-    {
-        try {
-            // Get booking information
-            $booking = $php_fetch('booking', '*', ['bookingid' => $bookingid]);
-            if (empty($booking)) {
-                return ['status' => 'error', 'message' => 'Booking not found'];
-            }
+    // public function getBookingServicesForCompletion($php_fetch, $bookingid)
+    // {
+    //     try {
+    //         // Get booking information
+    //         $booking = $php_fetch('booking', '*', ['bookingid' => $bookingid]);
+    //         if (empty($booking)) {
+    //             return ['status' => 'error', 'message' => 'Booking not found'];
+    //         }
 
-            // Get user information
-            $user = $php_fetch('users', 'full_name', ['user_id' => $booking[0]['user_id']]);
-            $booking[0]['user_name'] = $user[0]['full_name'] ?? 'Unknown User';
+    //         // Get user information
+    //         $user = $php_fetch('users', 'full_name', ['user_id' => $booking[0]['user_id']]);
+    //         $booking[0]['user_name'] = $user[0]['full_name'] ?? 'Unknown User';
 
-            // Get booking details with services
-            $query = "
-                SELECT 
-                    bd.bookingdetailsid,
-                    bd.booking_id,
-                    bd.service_id,
-                    bd.quantity,
-                    bd.price,
-                    bd.therapist_id,
-                    bd.person_number,
-                    bd.booking_date,
-                    bd.booking_time,
-                    bd.status,
-                    bd.therapist_notes,
-                    bd.pain_level,
-                    bd.mobility_level,
-                    bd.overall_progress,
-                    bd.completed_at,
-                    bd.updated_at,
-                    s.service_name,
-                    s.description as service_description,
-                    s.price as service_base_price,
-                    s.per_minute
-                FROM 
-                    $booking_details_table bd
-                LEFT JOIN 
-                    $services_table s ON bd.service_id = s.id
-                WHERE 
-                    bd.booking_id = :bookingid
-                ORDER BY 
-                    bd.bookingdetailsid ASC
-            ";
+    //         // Get booking details with services
+    //         $query = "
+    //             SELECT 
+    //                 bd.bookingdetailsid,
+    //                 bd.booking_id,
+    //                 bd.service_id,
+    //                 bd.quantity,
+    //                 bd.price,
+    //                 bd.therapist_id,
+    //                 bd.person_number,
+    //                 bd.booking_date,
+    //                 bd.booking_time,
+    //                 bd.status,
+    //                 bd.therapist_notes,
+    //                 bd.pain_level,
+    //                 bd.mobility_level,
+    //                 bd.overall_progress,
+    //                 bd.completed_at,
+    //                 bd.updated_at,
+    //                 s.service_name,
+    //                 s.description as service_description,
+    //                 s.price as service_base_price,
+    //                 s.per_minute
+    //             FROM 
+    //                 $booking_details_table bd
+    //             LEFT JOIN 
+    //                 $services_table s ON bd.service_id = s.id
+    //             WHERE 
+    //                 bd.booking_id = :bookingid
+    //             ORDER BY 
+    //                 bd.bookingdetailsid ASC
+    //         ";
 
-            // Log the query for debugging
-            error_log("Booking services query: " . $query . " with bookingid: " . $bookingid);
+    //         // Log the query for debugging
+    //         error_log("Booking services query: " . $query . " with bookingid: " . $bookingid);
 
-            // Use parameters to avoid SQL injection and formatting issues
-            $services = $php_fetch('', '', [], $query, [':bookingid' => $bookingid]);
+    //         // Use parameters to avoid SQL injection and formatting issues
+    //         $services = $php_fetch('', '', [], $query, [':bookingid' => $bookingid]);
 
-            if (empty($services)) {
-                return ['status' => 'error', 'message' => 'No services found for this booking'];
-            }
+    //         if (empty($services)) {
+    //             return ['status' => 'error', 'message' => 'No services found for this booking'];
+    //         }
 
-            // Add default status if not set
-            foreach ($services as &$service) {
-                if (empty($service['status'])) {
-                    $service['status'] = 'pending';
-                }
-            }
+    //         // Add default status if not set
+    //         foreach ($services as &$service) {
+    //             if (empty($service['status'])) {
+    //                 $service['status'] = 'pending';
+    //             }
+    //         }
 
-            return [
-                'status' => 'success',
-                'data' => [
-                    'booking' => $booking[0],
-                    'services' => $services
-                ]
-            ];
-        } catch (Exception $e) {
-            error_log("Error in getBookingServicesForCompletion: " . $e->getMessage());
-            return ['status' => 'error', 'message' => 'Database error: ' . $e->getMessage()];
-        }
-    }
+    //         return [
+    //             'status' => 'success',
+    //             'data' => [
+    //                 'booking' => $booking[0],
+    //                 'services' => $services
+    //             ]
+    //         ];
+    //     } catch (Exception $e) {
+    //         error_log("Error in getBookingServicesForCompletion: " . $e->getMessage());
+    //         return ['status' => 'error', 'message' => 'Database error: ' . $e->getMessage()];
+    //     }
+    // }
 
     public function updateServiceCompletion($php_fetch, $php_update, $booking_details_table, $bookings_table, $bookingDetailId, $therapistNotes, $progressData, $action)
     {

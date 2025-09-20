@@ -465,15 +465,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             break;
 
-        case 'get_booking_services':
-            $bookingid = $_POST['bookingid'] ?? null;
-            if (!$bookingid) {
-                response(['status' => 'error', 'message' => 'Booking ID is required']);
-            }
+        // case 'get_booking_services':
+        //     $bookingid = $_POST['bookingid'] ?? null;
+        //     if (!$bookingid) {
+        //         response(['status' => 'error', 'message' => 'Booking ID is required']);
+        //     }
 
-            $result = $BookingModel->getBookingServicesForCompletion($php_fetch, $bookingid);
-            response($result);
-            break;
+        //     $result = $BookingModel->getBookingServicesForCompletion($php_fetch, $bookingid);
+        //     response($result);
+        //     break;
 
         case 'update_service_completion':
             $bookingDetailId = $_POST['booking_detail_id'] ?? null;
@@ -658,6 +658,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 response(['status' => 'error', 'message' => 'Server error: ' . $e->getMessage()]);
             }
             break;
+
+
+        // case 'get_available_therapists':
+        //     $service_id = $_POST['service_id'] ?? null;
+        //     $date = $_POST['date'] ?? null;
+        //     $time = $_POST['time'] ?? null;
+        //     if (!$service_id || !$date || !$time) {
+        //         response(['status' => 'error', 'message' => 'service_id, date, and time are required']);
+        //     } else {
+        //         try {
+        //             $result = $BookingModel->getAvailableTherapists($php_fetch, $service_id, $date, $time);
+        //             response(json_decode($result, true));
+        //         } catch (Exception $e) {
+        //             error_log("Error in get_available_therapists: " . $e->getMessage());
+        //             response(['status' => 'error', 'message' => 'Server error: ' . $e->getMessage()]);
+        //         }
+        //     }
+        //     break;
 
         default:
             response(['status' => 'error', 'message' => 'Unknown POST action']);

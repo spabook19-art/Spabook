@@ -218,7 +218,7 @@ function submitBookingWithPayment() {
         
         // Submit booking
         $.ajax({
-            url: '../controller/booking_contr.php',
+            url: '../../controller/booking_contr.php',
             type: 'POST',
             data: submissionData,
             dataType: 'json',
