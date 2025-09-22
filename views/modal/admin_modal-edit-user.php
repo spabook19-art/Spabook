@@ -4,22 +4,28 @@
 </div>
 <div class="modal-body">
   <form id="editUserForm">
-    <input type="hidden" name="user_id" id="userId" value="">
-
+    <input type="hidden" name="user_id" id="userId">
+    <div class="mb-3 text-center">
+      <img id="profileView"
+        src="../../vendor/images/default_profile.png"
+        class="rounded-circle shadow-sm"
+        width="120" height="120"
+        alt="Profile Picture">
+    </div>
     <!-- Personal Information -->
     <h6 class="fw-bold mb-3">Personal Information</h6>
     <div class="row g-3">
       <div class="col-md-6">
-        <label for="fullName" class="form-label">Full Name <span class="text-danger">*</span></label>
-        <input type="text" class="form-control" id="fullName" name="full_name" required>
+        <label for="fullName" class="form-label">Full Name</span></label>
+        <input type="text" class="form-control" id="fullName" name="full_name" readonly>
       </div>
       <div class="col-md-6">
         <label for="dateOfBirth" class="form-label">Date of Birth</label>
-        <input type="date" class="form-control" id="dateOfBirth" name="date_of_birth">
+        <input type="date" class="form-control" id="dateOfBirth" name="date_of_birth" readonly>
       </div>
       <div class="col-md-6">
         <label for="gender" class="form-label">Gender</label>
-        <select class="form-select" id="gender" name="gender">
+        <select class="form-select" id="gender" name="gender" disabled>
           <option value="" selected disabled>Choose...</option>
           <option value="Male">Male</option>
           <option value="Female">Female</option>
@@ -28,11 +34,11 @@
       </div>
       <div class="col-md-6">
         <label for="contactNumber" class="form-label">Contact Number</label>
-        <input type="text" class="form-control" id="contactNumber" name="contact_number" placeholder="+63 9XXXXXXXXX">
+        <input type="text" class="form-control" id="contactNumber" name="contact_number" placeholder="+63 9XXXXXXXXX" readonly>
       </div>
       <div class="col-12">
         <label for="address" class="form-label">Address</label>
-        <textarea class="form-control" id="address" name="address" rows="2" placeholder="Enter full address"></textarea>
+        <textarea class="form-control" id="address" name="address" rows="2" placeholder="Enter full address" readonly></textarea>
       </div>
     </div>
 
@@ -42,8 +48,8 @@
     <h6 class="fw-bold mb-3">Account Information</h6>
     <div class="row g-3">
       <div class="col-md-6">
-        <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
-        <input type="email" class="form-control" id="email" name="email" required>
+        <label for="email" class="form-label">Email</span></label>
+        <input type="email" class="form-control" id="email" name="email" readonly>
       </div>
       <div class="col-md-6">
         <label for="role" class="form-label">Role <span class="text-danger">*</span></label>
@@ -56,20 +62,20 @@
       <div class="col-md-6">
         <label class="form-label">Email Verified</label>
         <div class="form-check form-switch">
-          <input class="form-check-input" type="checkbox" id="isEmailVerified" name="is_email_verified">
+          <input class="form-check-input" type="checkbox" id="isEmailVerified" name="is_email_verified" disabled>
           <label class="form-check-label" for="isEmailVerified">Verified</label>
         </div>
       </div>
       <div class="col-md-6">
         <label class="form-label">Number Verified</label>
         <div class="form-check form-switch">
-          <input class="form-check-input" type="checkbox" id="isNumberVerified" name="is_number_verified">
+          <input class="form-check-input" type="checkbox" id="isNumberVerified" name="is_number_verified" disabled>
           <label class="form-check-label" for="isNumberVerified">Verified</label>
         </div>
       </div>
       <div class="col-12">
         <label for="bio" class="form-label">Bio</label>
-        <textarea class="form-control" id="bio" name="bio" rows="3" placeholder="Short description about the user..."></textarea>
+        <textarea class="form-control" id="bio" name="bio" rows="3" placeholder="Short description about the user..." readonly></textarea>
       </div>
     </div>
 
@@ -101,46 +107,3 @@
     </div>
   </form>
 </div>
-
-<script>
-  $('#editUserForm').on('submit', function(e) {
-    e.preventDefault();
-
-    const formData = new FormData(this);
-    formData.append('action', 'update_user_role');
-
-    $.ajax({
-      url: '../../controller/user_contr.php',
-      type: 'POST',
-      data: Object.fromEntries(formData),
-      dataType: 'json',
-      success: function(response) {
-        if (response.status === 'success') {
-          Swal.fire({
-            title: 'Success!',
-            text: 'User role updated successfully',
-            icon: 'success',
-            timer: 2000,
-            showConfirmButton: false
-          }).then(() => {
-            $('#globalModal').modal('hide');
-            location.reload(); // Refresh the user table
-          });
-        } else {
-          Swal.fire({
-            title: 'Error!',
-            text: response.message || 'Failed to update user role',
-            icon: 'error'
-          });
-        }
-      },
-      error: function() {
-        Swal.fire({
-          title: 'Error!',
-          text: 'Failed to update user role',
-          icon: 'error'
-        });
-      }
-    });
-  });
-</script>

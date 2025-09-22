@@ -82,8 +82,8 @@ class User
         // Fetch user profile using the provided fetch function
         $user = $php_fetch($table, '*', ['user_id' => $id]);
 
-        if (is_array($user) && isset($user[0])) {
-            return json_encode($user[0]);
+        if ($user) {
+            return json_encode($user);
         } else {
             return json_encode(['error' => 'User not found']);
         }
@@ -154,6 +154,17 @@ class User
         return $php_update($table, $data, $where) ? 'success' : 'fail';
     }
 
+    function getUserDetails($php_fetch, $table, $user_id)
+    {
+        $user = $php_fetch($table, '*', ['user_id' => $user_id]);
+
+        if (is_array($user) && isset($user[0])) {
+            return json_encode($user[0]);
+        } else {
+            return json_encode(['error' => 'User not found']);
+        }
+    }
+
     public function updateUserRole($php_update, $table, $user_id, $new_role)
     {
         try {
@@ -168,45 +179,30 @@ class User
         }
     }
 
-    public function fetchUnifiedUsers($php_fetch, $table)
+    public function fetchManageUsers($php_fetch, $table, $role)
     {
-        try {
-            $users = $php_fetch($table, '*');
-            $item_data = array();
-            $all_users = [];
-            $user_role = [];
-            $admin_rode = [];
-            $therapist_role = [];
-            if (is_array($users) && count($users) > 0) {
-                // For each user, if they're a therapist, get their services info
-                foreach ($users as $user) {
-                    $all_users[] = $user;
-                    switch ($user['role']) {
-                        case 'User':
-                            $user_role[] = $user;
-                            break;
-                        case 'Admin':
-                            $admin_rode[] = $user;
-                            break;
-                        case 'Therapist':
-                            $therapist_role[] = $user;
-                            break;
-                    }
-                }
-                $item_data = array(
-                    'all_users' => $all_users,
-                    'admin' => $admin_rode,
-                    'therapist' => $therapist_role,
-                    'regular_user' => $user_role
-                );
-                return json_encode($item_data);
-            } else {
-                return json_encode([]);
-            }
-        } catch (Exception $e) {
-            error_log('Error in fetchUnifiedUsers: ' . $e->getMessage());
-            return json_encode([]);
+        $fetchUser = $php_fetch($table,  '*', ['role' => $role]);
+
+        $response = [
+            "draw" => intval($_POST['draw'] ?? 1),
+            "recordsTotal" => count($fetchUser),
+            "recordsFiltered" => count($fetchUser),
+            "data" => $fetchUser
+        ];
+        return json_encode($response);
+    }
+
+    public function fetchUserCounts($php_fetch, $table)
+    {
+        $roles = ['Admin', 'Therapist', 'User'];
+        $counts = [];
+
+        foreach ($roles as $role) {
+            $count = $php_fetch($table, 'COUNT(*) as count', ['role' => $role]);
+            $counts[$role] = isset($count[0]['count']) ? intval($count[0]['count']) : 0;
         }
+
+        return json_encode($counts);
     }
 
     public function deleteUser($php_update, $table, $user_id)
@@ -304,4 +300,16 @@ class User
 
     //! ============================================================ ADMIN SECTION ============================================================
 
+
+    public function getTherapistServices($php_fetch, $table, $therapist_id)
+    {
+        // Fetch services for the given therapist ID
+        $services = $php_fetch($table, '*', ['therapist_id' => $therapist_id]);
+
+        if (is_array($services)) {
+            return json_encode($services);
+        } else {
+            return json_encode([]);
+        }
+    }
 }

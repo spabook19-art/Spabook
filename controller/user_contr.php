@@ -34,14 +34,24 @@ if (isset($_POST['action'])) {
             }
             break;
 
+        case 'get_user_details':
+            $user_id = trim($_POST['user_id']);
+            echo $User->getUserDetails($php_fetch, 'users', $user_id);
+            break;
+
         case 'update_user_role':
             $user_id = trim($_POST['id']);
             $new_role = trim($_POST['role']);
             echo $User->updateUserRole($php_update, 'users', $user_id, $new_role);
             break;
 
-        case 'fetch_unified_users':
-            echo $User->fetchUnifiedUsers($php_fetch, 'users');
+        case 'fetch_manage_users':
+            $role = trim($_POST['role'] ?? '');
+            echo $User->fetchManageUsers($php_fetch, 'users', $role);
+            break;
+
+        case 'fetch_user_counts':
+            echo $User->fetchUserCounts($php_fetch, 'users');
             break;
 
         case 'delete_user':
@@ -63,14 +73,25 @@ if (isset($_POST['action'])) {
             $is_active = isset($_POST['is_active']);
 
             echo $User->addTherapistUser(
-                $php_insert, 'users', $first_name, $last_name, $email, $password,
-                $contact, $address, $specialties, $experience, $certification, $bio, $is_active
+                $php_insert,
+                'users',
+                $first_name,
+                $last_name,
+                $email,
+                $password,
+                $contact,
+                $address,
+                $specialties,
+                $experience,
+                $certification,
+                $bio,
+                $is_active
             );
             break;
 
         case 'get_user_profile':
             $id = trim($_POST['id']);
-            echo $User->getUserProfile($php_fetch, 'users', $id);
+            echo $User->getUserDetails($php_fetch, 'users', $id);
             break;
         case 'check_email_exists':
             $email = trim($_POST['email']);
@@ -108,6 +129,11 @@ if (isset($_POST['action'])) {
             echo $user_data = $User->getUserProfileData($php_fetch, 'users');
             break;
 
+        case 'get_therapist_services':
+            $therapist_id = trim($_POST['therapist_id']);
+            echo $User->getTherapistServices($php_fetch, 'services', $therapist_id);
+            break;
+
         case 'update_role':
             $id = trim($_POST['id']);
             $role = trim($_POST['role']);
@@ -141,6 +167,5 @@ if (isset($_POST['action'])) {
                 echo json_encode(['status' => 'error', 'message' => 'Invalid file upload.']);
             }
             break;
-
     }
 }
