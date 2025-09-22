@@ -464,7 +464,6 @@ include_once '../../helper/admin_apps.php' ?>
   }
 
   function renderAdminUsers() {
-    console.log('🛡️ Rendering admin users. Count:', adminUsers.length);
     const tbody = $('#adminTableBody');
     const mobileCards = $('#adminMobileCards');
 
