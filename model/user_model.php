@@ -312,4 +312,21 @@ class User
             return json_encode([]);
         }
     }
+
+
+
+
+
+
+
+
+
+    public function getTotalBookings($php_fetch, $table)
+    {
+        $result = [];
+        $bookings = $php_fetch('booking', '*', []);
+        foreach ($bookings as $booking) {
+            $result[] = $booking;
+        }
+    }
 }

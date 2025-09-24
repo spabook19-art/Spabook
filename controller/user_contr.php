@@ -167,5 +167,10 @@ if (isset($_POST['action'])) {
                 echo json_encode(['status' => 'error', 'message' => 'Invalid file upload.']);
             }
             break;
+
+
+        case 'get_total_bookings':
+            echo $User->getTotalBookings($php_fetch, 'bookings');
+            break;
     }
 }
