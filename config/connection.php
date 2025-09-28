@@ -115,8 +115,8 @@ $php_fetch = function ($table, $select = '*', $filters = [], $joins = []) {
         }
 
         // Always pick primary key for counting
-        if ($table === 'booking') {
-            $query['select'] = 'bookingid';
+        if ($table === 'booking_details') {
+            $query['select'] = 'booking_id';
         } else {
             $query['select'] = 'id';
         }

@@ -9,7 +9,7 @@ if (isset($_POST['action'])) {
     date_default_timezone_set('Asia/Manila');
     require_once '../config/connection.php';
     require_once '../model/user_model.php';
-    $User = new User();
+    $User = new Users();
     $action = trim($_POST['action']);
     $current_date = date('Y-m-d');
     $timestamp = new DateTime('now');

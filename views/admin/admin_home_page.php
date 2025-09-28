@@ -192,50 +192,9 @@
                                                 </div>
                                                 <div class="card-body">
                                                     <!-- Search -->
-                                                    <input class="search form-control form-control-sm mb-3" placeholder="Search recoverable..." />
-
-                                                    <div class="list">
-                                                        <div class="booking-item border rounded p-3 mb-3">
-                                                            <div class="d-flex justify-content-between align-items-start">
-                                                                <div>
-                                                                    <h6 class="name mb-1">Bandolf Conrad Alfuen</h6>
-                                                                    <p class="service mb-1 text-muted">Head Massage</p>
-                                                                    <small class="date text-muted">Sep 08, 2025 1:13 PM</small>
-                                                                </div>
-                                                                <div class="text-end">
-                                                                    <div class="amount fw-bold">₱650.00</div>
-                                                                    <span class="badge bg-warning text-dark">Medium</span>
-                                                                </div>
-                                                            </div>
-                                                            <div class="mt-2 text-end">
-                                                                <button class="btn btn-success btn-sm">
-                                                                    <i class="bi bi-arrow-repeat me-1"></i>Recover
-                                                                </button>
-                                                            </div>
-                                                        </div>
-
-                                                        <div class="booking-item border rounded p-3 mb-3">
-                                                            <div class="d-flex justify-content-between align-items-start">
-                                                                <div>
-                                                                    <h6 class="name mb-1">Bandolf Conrad Alfuen</h6>
-                                                                    <p class="service mb-1 text-muted">Head Massage</p>
-                                                                    <small class="date text-muted">Sep 19, 2025 5:55 PM</small>
-                                                                </div>
-                                                                <div class="text-end">
-                                                                    <div class="amount fw-bold">₱325.00</div>
-                                                                    <span class="badge bg-danger">Low</span>
-                                                                </div>
-                                                            </div>
-                                                            <div class="mt-2 text-end">
-                                                                <button class="btn btn-success btn-sm">
-                                                                    <i class="bi bi-arrow-repeat me-1"></i>Recover
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <!-- Pagination -->
-                                                    <ul class="pagination pagination-sm justify-content-center mt-3"></ul>
+                                                    <table id="recoverableTable" class="table table-borderless w-100">
+                                                        <tbody></tbody>
+                                                    </table>
                                                 </div>
                                             </div>
                                         </div>
@@ -248,26 +207,9 @@
                                                 </div>
                                                 <div class="card-body">
                                                     <!-- Search -->
-                                                    <input class="search form-control form-control-sm mb-3" placeholder="Search recovered..." />
-
-                                                    <div class="list">
-                                                        <div class="booking-item border rounded p-3 mb-3 bg-light">
-                                                            <div class="d-flex justify-content-between align-items-start">
-                                                                <div>
-                                                                    <h6 class="name mb-1">Bandolf Conrad Alfuen</h6>
-                                                                    <p class="service mb-1 text-muted">Head Massage</p>
-                                                                    <small class="date text-success">Recovered: Sep 10, 2025 3:45 PM</small>
-                                                                </div>
-                                                                <div class="text-end">
-                                                                    <div class="amount fw-bold text-success">₱650.00</div>
-                                                                    <small class="text-muted">Value Recovered</small>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <!-- Pagination -->
-                                                    <ul class="pagination pagination-sm justify-content-center mt-3"></ul>
+                                                    <table id="recentRecoverTable" class="table table-borderless w-100">
+                                                        <tbody></tbody>
+                                                    </table>
                                                 </div>
                                             </div>
                                         </div>
@@ -306,7 +248,8 @@
             });
 
             $('#recovery-tab').on('click', function() {
-                loadManageUser('Therapist', 'therapistTable');
+                loadForRecovered();
+                loadrecentRecovered();
             });
 
 
@@ -334,7 +277,7 @@
                     deferRender: true,
                     processing: true,
                     ajax: {
-                        url: '../../controller/user_contr.php',
+                        url: '../../controller/admin_dashboard_contr.php',
                         type: 'POST',
                         dataType: 'json',
                         data: {
@@ -401,8 +344,19 @@
 
             function loadHistory() {
                 if ($.fn.DataTable.isDataTable('#appointmentHistoryTable')) {
-                    $('#totalBookingsTable').DataTable().clear().destroy();
+                    $('#appointmentHistoryTable').DataTable().clear().destroy();
                 }
+                $.ajax({
+                    url: '../../controller/admin_dashboard_contr.php',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: {
+                        action: 'get_appointment_history'
+                    },
+                    success: function(response) {
+                        console.log('Total appointment response:', response);
+                    }
+                });
 
                 let appointment_history = $('#appointmentHistoryTable').DataTable({
                     responsive: true,
@@ -411,7 +365,7 @@
                     deferRender: true,
                     processing: true,
                     ajax: {
-                        url: '../../controller/user_contr.php',
+                        url: '../../controller/admin_dashboard_contr.php',
                         type: 'POST',
                         dataType: 'json',
                         data: {
@@ -431,7 +385,7 @@
                             className: 'dt-body-middle-left'
                         }, // Services
                         {
-                            data: 'booking_date',
+                            data: 'schedule_end',
                             className: 'dt-body-middle-left'
                         }, // Date & Time
                         {
@@ -441,8 +395,8 @@
                                 let statusClass = 'badge bg-secondary';
                                 if (data === 'Pending') statusClass = 'badge bg-warning';
                                 if (data === 'Ongoing') statusClass = 'badge bg-info';
-                                if (data === 'Done') statusClass = 'badge bg-success';
                                 if (data === 'Cancelled') statusClass = 'badge bg-danger';
+                                if (data === 'Completed') statusClass = 'badge bg-success';
 
                                 return `<td data-label="Status"><span class="${statusClass}">${data}</span></td>`;
                             }
@@ -454,11 +408,10 @@
                                 let price = parseFloat(data || 0).toFixed(2);
                                 return `<td data-label="Amount">₱${price}</td>`;
                             }
-                        }, // Amount
-                        {
-                            data: 'payment_status',
-                            className: 'dt-body-middle-left'
-                        } // Payment
+                        }, {
+                            data: 'duration',
+                            className: 'dt-body-middle-right'
+                        }
                     ]
                 });
                 appointment_history.on('draw', function() {
@@ -473,6 +426,55 @@
                 setInterval(function() {
                     appointment_history.ajax.reload(null, false); //* ======= Reload Table Data Every X seconds with pagination retained =======
                 }, 30000);
+            }
+
+            function loadForRecovered() {
+                if ($.fn.DataTable.isDataTable('#recoverableTable')) {
+                    $('#recoverableTable').DataTable().clear().destroy();
+                }
+                $('#recoverableTable').DataTable({
+                    ajax: {
+                        url: '../../controller/admin_dashboard_contr.php',
+                        type: 'POST',
+                        dataType: 'json',
+                        data: {
+                            action: 'get_recoverable_bookings'
+                        },
+                        dataSrc: '' // ✅ your PHP returns a plain array
+                    },
+                    columns: [{
+                        data: null,
+                        render: function(row) {
+                            return `
+                        <div class="booking-item border rounded p-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="name mb-1">${row.user_name}</h6>
+                                    <p class="service mb-1 text-muted">${row.services_name}</p>
+                                    <small class="date text-muted">${row.booking_date}</small>
+                                </div>
+                                <div class="text-end">
+                                    <div class="amount fw-bold">₱${row.price}</div>
+                                    <span class="badge ${row.priority_class}">${row.priority_label}</span>
+                                </div>
+                            </div>
+                            <div class="mt-2 text-end">
+                                <button class="btn btn-success btn-sm">
+                                    <i class="bi bi-arrow-repeat me-1"></i>Recover
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                        }
+                    }],
+                    paging: true,
+                    pageLength: 5,
+                    searching: true,
+                    ordering: false,
+                    info: false,
+                    dom: '<"top"f>rt<"bottom"p>'
+                });
+
             }
 
             // // Global variables for pagination
