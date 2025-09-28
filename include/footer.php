@@ -55,7 +55,6 @@
         id: user_id
       },
       success: function(data) {
-        console.log('User profile data:', data);
         if (data.role === 'User') {
           // Update profile image and name in the navbar
           $('#navProfileImage').attr('src', data.profile_picture);

@@ -141,7 +141,6 @@
       },
       success: function(response) {
         Swal.close();
-        console.log('User profile data:', response);
         $('#userProfileForm').show();
         $('#profile_picture').attr('src', response.profile_picture);
         $('#profileName').val(response.full_name || 'N/A');

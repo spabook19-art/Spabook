@@ -83,61 +83,8 @@ function supabaseRequest($method, $endpoint, $data = null)
 }
 
 // Fetch (GET)
-$php_fetch = function ($table, $select = '*', $filters = []) {
-    // Log the fetch call (disabled in production)
-    // $logMessage = date('Y-m-d H:i:s') . " - php_fetch called: Table=$table, Select=" . (is_string($select) ? $select : json_encode($select)) . ", Filters=" . json_encode($filters) . "\n";
-    // file_put_contents(__DIR__ . '/../logs/debug.log', $logMessage, FILE_APPEND);
-
-    // Handle raw SQL query case (for backward compatibility)
-    if (is_string($table) && (strpos($table, 'SELECT') !== false || strpos($table, 'select') !== false)) {
-        // This is a raw SQL query - not supported directly by Supabase REST API
-        // For now, we'll parse it to extract the table name and conditions
-
-        // Log that we're handling a raw SQL query (disabled in production)
-        // file_put_contents(__DIR__ . '/../logs/debug.log', date('Y-m-d H:i:s') . " - Raw SQL query detected: $table\n", FILE_APPEND);
-
-        // Extract table name from the query (simple parsing)
-        preg_match('/FROM\s+([^\s,]+)/i', $table, $tableMatches);
-        if (!empty($tableMatches[1])) {
-            $extractedTable = trim($tableMatches[1]);
-
-            // Extract WHERE conditions (very simple parsing)
-            $whereConditions = [];
-            if (preg_match('/WHERE\s+(.*?)(?:ORDER BY|LIMIT|$)/is', $table, $whereMatches)) {
-                $whereClause = trim($whereMatches[1]);
-
-                // Extract specific conditions (very basic)
-                if (preg_match('/bookingid\s*=\s*[\'"]?(\d+)[\'"]?/i', $whereClause, $idMatches)) {
-                    $bookingId = $idMatches[1];
-                    $whereConditions['bookingid'] = "eq.$bookingId";
-
-                    // Log that we're using a specific booking ID (disabled in production)
-                    // file_put_contents(__DIR__ . '/../logs/debug.log', date('Y-m-d H:i:s') . " - Extracted booking ID from SQL: $bookingId\n", FILE_APPEND);
-
-                    // For booking details, we'll make a direct call
-                    $result = supabaseRequest('GET', $extractedTable, [
-                        'select' => '*',
-                        'bookingid' => "eq.$bookingId"
-                    ]);
-
-                    // Log the result (disabled in production)
-                    // file_put_contents(__DIR__ . '/../logs/debug.log', date('Y-m-d H:i:s') . " - Raw SQL query result count: " . (is_array($result) ? count($result) : 'not an array') . "\n", FILE_APPEND);
-
-                    return $result;
-                }
-            }
-
-            // If we couldn't extract specific conditions, just get all records from the table
-            // file_put_contents(__DIR__ . '/../logs/debug.log', date('Y-m-d H:i:s') . " - Falling back to getting all records from table: $extractedTable\n", FILE_APPEND);
-            return supabaseRequest('GET', $extractedTable, ['select' => '*']);
-        }
-
-        // If we couldn't parse the query, return an empty array
-        // file_put_contents(__DIR__ . '/../logs/debug.log', date('Y-m-d H:i:s') . " - Could not parse SQL query, returning empty array\n", FILE_APPEND);
-        return [];
-    }
-
-    // Handle special case for UPDATE operation
+$php_fetch = function ($table, $select = '*', $filters = [], $joins = []) {
+    // Special case: UPDATE
     if ($select === 'UPDATE') {
         $query = [];
         foreach ($filters as $key => $value) {
@@ -147,29 +94,27 @@ $php_fetch = function ($table, $select = '*', $filters = []) {
         return supabaseRequest('PATCH', $endpoint, $filters);
     }
 
-    // Handle special case for COUNT operation
-    if (is_string($select) && strpos($select, 'COUNT') !== false) {
-        // Supabase REST API doesn't support COUNT(*) as count directly
-        // Instead, we'll use a different approach
+    // Special case: COUNT
+    if (is_string($select) && stripos($select, 'COUNT') !== false) {
         $query = [];
 
-        // Add filters
         foreach ($filters as $key => $value) {
-            if ($key !== null && is_string($key) && str_contains($key, '!=')) {
+            if (is_array($value)) {
+                // IN query
+                $query[$key] = 'in.(' . implode(',', $value) . ')';
+            } elseif ($key !== null && is_string($key) && str_contains($key, '!=')) {
                 $field = trim(str_replace('!=', '', $key));
                 $query[$field] = "neq.$value";
             } elseif ($value !== null && is_string($value) && !str_contains($value, '.')) {
                 $query[$key] = "eq.$value";
             } elseif ($value !== null && !is_string($value)) {
-                // Handle non-string values (like numbers or booleans)
                 $query[$key] = "eq.$value";
             } else {
                 $query[$key] = $value;
             }
         }
 
-        // For count, we'll select the appropriate primary key column
-        // For the booking table, use 'bookingid', for others use 'id'
+        // Always pick primary key for counting
         if ($table === 'booking') {
             $query['select'] = 'bookingid';
         } else {
@@ -177,46 +122,47 @@ $php_fetch = function ($table, $select = '*', $filters = []) {
         }
 
         $result = supabaseRequest('GET', $table, $query);
-
-        // If there's an error, return it
         if (isset($result['error'])) {
             return $result;
         }
-
-        // Count the results manually
-        $count = count($result);
-
-        // Log the count result for debugging (disabled in production)
-        // file_put_contents('debug_count.txt', "Table: $table\nFilters: " . print_r($filters, true) . "\nCount: $count\n\n", FILE_APPEND);
-
-        // Return in the expected format
-        return [['count' => $count]];
+        return [['count' => count($result)]];
     }
 
-    // Normal GET operation
+    // Normal GET + Join support
     $query = ['select' => $select];
+
+    // Add joins if provided
+    if (!empty($joins)) {
+        $joinParts = [];
+        foreach ($joins as $joinTable => $joinFields) {
+            if (is_array($joinFields)) {
+                $joinParts[] = $joinTable . '(' . implode(',', $joinFields) . ')';
+            } else {
+                $joinParts[] = $joinTable . '(' . $joinFields . ')';
+            }
+        }
+        $query['select'] .= ',' . implode(',', $joinParts);
+    }
+
+    // Apply filters
     foreach ($filters as $key => $value) {
-        // Check if key and value are not null before using str_contains
-        if ($key !== null && is_string($key) && str_contains($key, '!=')) {
+        if (is_array($value)) {
+            $query[$key] = 'in.(' . implode(',', $value) . ')';
+        } elseif ($key !== null && is_string($key) && str_contains($key, '!=')) {
             $field = trim(str_replace('!=', '', $key));
             $query[$field] = "neq.$value";
         } elseif ($value !== null && is_string($value) && !str_contains($value, '.')) {
             $query[$key] = "eq.$value";
         } elseif ($value !== null && !is_string($value)) {
-            // Handle non-string values (like numbers or booleans)
             $query[$key] = "eq.$value";
         } else {
             $query[$key] = $value;
         }
     }
 
-    $result = supabaseRequest('GET', $table, $query);
-
-    // Log the result (disabled in production)
-    // file_put_contents(__DIR__ . '/../logs/debug.log', date('Y-m-d H:i:s') . " - php_fetch result count: " . (is_array($result) ? count($result) : 'not an array') . "\n", FILE_APPEND);
-
-    return $result;
+    return supabaseRequest('GET', $table, $query);
 };
+
 
 
 // Insert (POST)

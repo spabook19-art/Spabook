@@ -293,14 +293,16 @@
 
 
             loadTotalbooking();
-            loadCounts();
+            loadDashboardStats();
+
+            // loadCounts();
 
             $('#totalbookings-tab').on('click', function() {
                 loadTotalbooking();
             });
 
             $('#history-tab').on('click', function() {
-                loadManageUser('Admin', 'adminTable');
+                loadHistory();
             });
 
             $('#recovery-tab').on('click', function() {
@@ -309,9 +311,22 @@
 
 
             function loadTotalbooking() {
+                // $.ajax({
+                //     url: '../../controller/user_contr.php',
+                //     type: 'POST',
+                //     dataType: 'json',
+                //     data: {
+                //         action: 'get_total_bookings'
+                //     },
+                //     success: function(response) {
+                //         console.log('Total bookings response:', response);
+                //     }
+                // });
+
                 if ($.fn.DataTable.isDataTable('#totalBookingsTable')) {
                     $('#totalBookingsTable').DataTable().clear().destroy();
                 }
+
                 let total_booking_table = $('#totalBookingsTable').DataTable({
                     responsive: true,
                     autoWidth: false,
@@ -324,43 +339,49 @@
                         dataType: 'json',
                         data: {
                             action: 'get_total_bookings'
-                        }
-                    },
-                    columns: [{ // Avatar
-                            data: 'profile_picture',
                         },
-                        {
-                            data: 'full_name',
-                            className: 'dt-body-middle-left'
+                        dataSrc: '' // ✅ because PHP returns a raw array
+                    },
+                    columns: [{
+                            data: 'user_name',
+                            className: 'dt-body-middle-left',
+                            render: function(data, type, row) {
+                                return `<td data-label="Client"><strong>${data}</strong></td>`;
+                            }
                         }, // Name
                         {
-                            data: 'email',
+                            data: 'services_name',
                             className: 'dt-body-middle-left'
-                        }, // Email
-                        { // Contact
-                            data: 'contact_number',
-                            render: function(data) {
-                                return data ? data : '<span class="text-muted">N/A</span>';
-                            },
+                        }, // Services
+                        {
+                            data: 'booking_date',
                             className: 'dt-body-middle-left'
-                        },
-                        { // Status
-                            data: 'is_active',
+                        }, // Date & Time
+                        {
+                            data: 'booking_status',
+                            className: 'dt-body-middle-left',
                             render: function(data, type, row) {
-                                let userStatus = data ?
-                                    `<span class="badge bg-success">Active</span>` :
-                                    `<span class="badge bg-secondary">Inactive</span>`;
-                                return userStatus;
-                            },
-                            className: 'dt-body-middle-center'
-                        },
-                        { // Join Date
-                            data: 'created_at',
-                            render: function(data) {
-                                return new Date(data).toLocaleDateString();
-                            },
-                            className: 'dt-body-middle-center'
-                        }
+                                let statusClass = 'badge bg-secondary';
+                                if (data === 'Pending') statusClass = 'badge bg-warning';
+                                if (data === 'Ongoing') statusClass = 'badge bg-info';
+                                if (data === 'Done') statusClass = 'badge bg-success';
+                                if (data === 'Cancelled') statusClass = 'badge bg-danger';
+
+                                return `<td data-label="Status"><span class="${statusClass}">${data}</span></td>`;
+                            }
+                        }, // Status
+                        {
+                            data: 'price',
+                            className: 'dt-body-middle-right',
+                            render: function(data, type, row) {
+                                let price = parseFloat(data || 0).toFixed(2);
+                                return `<td data-label="Amount">₱${price}</td>`;
+                            }
+                        }, // Amount
+                        {
+                            data: 'payment_status',
+                            className: 'dt-body-middle-left'
+                        } // Payment
                     ]
                 });
                 total_booking_table.on('draw', function() {
@@ -374,6 +395,83 @@
                 });
                 setInterval(function() {
                     total_booking_table.ajax.reload(null, false); //* ======= Reload Table Data Every X seconds with pagination retained =======
+                }, 30000);
+            }
+
+
+            function loadHistory() {
+                if ($.fn.DataTable.isDataTable('#appointmentHistoryTable')) {
+                    $('#totalBookingsTable').DataTable().clear().destroy();
+                }
+
+                let appointment_history = $('#appointmentHistoryTable').DataTable({
+                    responsive: true,
+                    autoWidth: false,
+                    serverSide: false,
+                    deferRender: true,
+                    processing: true,
+                    ajax: {
+                        url: '../../controller/user_contr.php',
+                        type: 'POST',
+                        dataType: 'json',
+                        data: {
+                            action: 'get_appointment_history'
+                        },
+                        dataSrc: '' // ✅ because PHP returns a raw array
+                    },
+                    columns: [{
+                            data: 'user_name',
+                            className: 'dt-body-middle-left',
+                            render: function(data, type, row) {
+                                return `<td data-label="Client"><strong>${data}</strong></td>`;
+                            }
+                        }, // Name
+                        {
+                            data: 'services_name',
+                            className: 'dt-body-middle-left'
+                        }, // Services
+                        {
+                            data: 'booking_date',
+                            className: 'dt-body-middle-left'
+                        }, // Date & Time
+                        {
+                            data: 'booking_status',
+                            className: 'dt-body-middle-left',
+                            render: function(data, type, row) {
+                                let statusClass = 'badge bg-secondary';
+                                if (data === 'Pending') statusClass = 'badge bg-warning';
+                                if (data === 'Ongoing') statusClass = 'badge bg-info';
+                                if (data === 'Done') statusClass = 'badge bg-success';
+                                if (data === 'Cancelled') statusClass = 'badge bg-danger';
+
+                                return `<td data-label="Status"><span class="${statusClass}">${data}</span></td>`;
+                            }
+                        }, // Status
+                        {
+                            data: 'price',
+                            className: 'dt-body-middle-right',
+                            render: function(data, type, row) {
+                                let price = parseFloat(data || 0).toFixed(2);
+                                return `<td data-label="Amount">₱${price}</td>`;
+                            }
+                        }, // Amount
+                        {
+                            data: 'payment_status',
+                            className: 'dt-body-middle-left'
+                        } // Payment
+                    ]
+                });
+                appointment_history.on('draw', function() {
+                    setTimeout(function() {
+                        $('[data-bs-toggle="tooltip"]').tooltip(); //* ======== Initialize tooltip ========
+                        $('[id^="tooltip"]').remove(); //* ======== Remove tooltip every table draw ========
+                        $('[data-bs-toggle="tooltip"]').on('click', function() { //* ======= Hide tooltip upon click =======
+                            $(this).tooltip('hide');
+                        });
+                    }, 1000);
+                });
+                setInterval(function() {
+                    appointment_history.ajax.reload(null, false); //* ======= Reload Table Data Every X seconds with pagination retained =======
                 }, 30000);
             }
 
@@ -822,8 +920,6 @@
 
             // Load dashboard stats on page load
             function loadDashboardStats() {
-                console.log('Loading dashboard stats...');
-
                 // Show loading indicators
                 $('#total_bookings_count').html('<div class="spinner-border spinner-border-sm text-primary" role="status"><span class="visually-hidden">Loading...</span></div>');
                 $('#history_count').html('<div class="spinner-border spinner-border-sm text-success" role="status"><span class="visually-hidden">Loading...</span></div>');
@@ -837,7 +933,6 @@
                         action: 'get_dashboard_stats'
                     },
                     success: function(response) {
-                        console.log('Dashboard stats response:', response);
                         if (response && response.status === 'success' && response.data) {
                             updateDashboardStats(response.data);
                         } else {
@@ -1251,7 +1346,6 @@
             // };
 
             // // Load dashboard stats on page load
-            loadDashboardStats();
 
             // // Load default dashboard data (bookings)
             // loadDashboardData('Bookings');

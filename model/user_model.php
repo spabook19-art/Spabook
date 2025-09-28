@@ -313,20 +313,42 @@ class User
         }
     }
 
-
-
-
-
-
-
-
-
     public function getTotalBookings($php_fetch, $table)
     {
         $result = [];
-        $bookings = $php_fetch('booking', '*', []);
+
+        // Fetch bookings with joins
+        $bookings = $php_fetch(
+            'booking',
+            'bookingid, date_created, payment_img, users(full_name, contact_number), booking_details(status, payment_status, price, services(service_name))',
+            []
+        );
+
         foreach ($bookings as $booking) {
-            $result[] = $booking;
+            // Handle nested arrays safely
+            $user       = $booking['users'] ?? null;
+            $fullname   = $user['full_name'] ?? 'Unknown User';
+            $contact    = $user['contact_number'] ?? '';
+
+            $detailsArr = $booking['booking_details'] ?? [];
+            foreach ($detailsArr as $details) {
+                $service    = $details['services'] ?? null;
+                $serviceName = $service['service_name'] ?? 'Unknown Service';
+
+                $result[] = [
+                    'bookingid'      => $booking['bookingid'],
+                    'user_name'      => $fullname,
+                    'user_phone'     => $contact,
+                    'services_name'  => $serviceName,
+                    'price'          => $details['price'] ?? 0,
+                    'booking_date'   => date('M d, Y g:i A', strtotime($booking['date_created'] ?? 'now')),
+                    'booking_status' => $details['status'] ?? '',
+                    'payment_status' => $details['payment_status'] ?? '',
+                    'payment_img'    => $booking['payment_img'] ?? null
+                ];
+            }
         }
+
+        return json_encode($result);
     }
 }
