@@ -66,8 +66,8 @@ class Admin
         // Fetch bookings with joins
         $bookings = $php_fetch(
             'booking',
-            'bookingid, date_created, payment_img, users(full_name, contact_number), booking_details(status, payment_status, price, services(service_name))',
-            []
+            'bookingid, date_created, payment_img, users(full_name, contact_number), booking_details(status, payment_status, price,date_modified, services(service_name))',
+            [],
         );
 
         foreach ($bookings as $booking) {
@@ -87,7 +87,7 @@ class Admin
                     'user_phone'     => $contact,
                     'services_name'  => $serviceName,
                     'price'          => $details['price'] ?? 0,
-                    'booking_date'   => date('M d, Y g:i A', strtotime($booking['date_created'] ?? 'now')),
+                    'booking_date'   => date('M d, Y g:i A', strtotime($details['date_modified'] ?? 'now')),
                     'booking_status' => $details['status'] ?? '',
                     'payment_status' => $details['payment_status'] ?? '',
                     'payment_img'    => $booking['payment_img'] ?? null
@@ -150,7 +150,7 @@ class Admin
         // Fetch bookings with joins
         $bookings = $php_fetch(
             'booking',
-            'bookingid, date_created, payment_img, users(full_name, contact_number), booking_details(status, payment_status, price, schedule_start,schedule_end, services(service_name))',
+            'bookingid, date_created, payment_img, users(full_name, contact_number), booking_details(status, payment_status, price, schedule_start,schedule_end,date_modified , services(service_name))',
             [
                 'booking_details.status' => 'Cancelled' // Only Cancelled bookings
             ]
@@ -176,7 +176,7 @@ class Admin
                     'user_phone'     => $contact,
                     'services_name'  => $serviceName,
                     'price'          => $details['price'] ?? 0,
-                    'schedule_end'   => date('M d, Y g:i A', strtotime($booking['schedule_end'] ?? 'now')),
+                    'date_created'   => date('M d, Y g:i A', strtotime($details['date_modified'] ?? 'now')),
                     'duration'       => $duration . ' mins',
                     'booking_status' => $details['status'] ?? '',
                     'payment_status' => $details['payment_status'] ?? '',
@@ -186,6 +186,34 @@ class Admin
         }
 
         return json_encode($result);
+    }
+
+
+    public function recoverBooking($php_update, $bookingid, $current_datetimestamp)
+    {
+        // Update booking_details status to 'Confirmed' for the given bookingid
+        $updateData = [
+            'status' => 'Confirmed',
+            'date_modified' => $current_datetimestamp
+        ];
+
+        $filters = [
+            'booking_id' => $bookingid
+        ];
+
+        $updateResult = $php_update('booking_details',  $updateData, $filters);
+
+        if (isset($updateResult['error'])) {
+            return json_encode([
+                'status' => 'error',
+                'message' => 'Failed to recover booking: ' . $updateResult['error']
+            ]);
+        }
+
+        return json_encode([
+            'status' => 'success',
+            'message' => 'Booking recovered successfully.'
+        ]);
     }
 
     //! ============================================================ ADMIN SECTION END ============================================================

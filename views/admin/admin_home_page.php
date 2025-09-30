@@ -283,7 +283,7 @@
                         data: {
                             action: 'get_total_bookings'
                         },
-                        dataSrc: '' // ✅ because PHP returns a raw array
+                        dataSrc: ''
                     },
                     columns: [{
                             data: 'user_name',
@@ -451,15 +451,15 @@
                                 <div>
                                     <h6 class="name mb-1">${row.user_name}</h6>
                                     <p class="service mb-1 text-muted">${row.services_name}</p>
-                                    <small class="date text-muted">${row.booking_date}</small>
+                                    <small class="date text-muted">${row.date_created}</small>
                                 </div>
                                 <div class="text-end">
                                     <div class="amount fw-bold">₱${row.price}</div>
-                                    <span class="badge ${row.priority_class}">${row.priority_label}</span>
+                                    <span class="badge bg-dark">${row.booking_status}</span>
                                 </div>
                             </div>
                             <div class="mt-2 text-end">
-                                <button class="btn btn-success btn-sm">
+                                <button class="btn btn-success btn-sm" onclick="recoverBooking('${row.bookingid}')">
                                     <i class="bi bi-arrow-repeat me-1"></i>Recover
                                 </button>
                             </div>
@@ -473,6 +473,99 @@
                     ordering: false,
                     info: false,
                     dom: '<"top"f>rt<"bottom"p>'
+                });
+
+            }
+
+            function loadrecentRecovered() {
+                if ($.fn.DataTable.isDataTable('#recentRecoverTable')) {
+                    $('#recentRecoverTable').DataTable().clear().destroy();
+                }
+                $('#recentRecoverTable').DataTable({
+                    ajax: {
+                        url: '../../controller/admin_dashboard_contr.php',
+                        type: 'POST',
+                        dataType: 'json',
+                        data: {
+                            action: 'get_total_bookings'
+                        },
+                        dataSrc: '' // ✅ your PHP returns a plain array
+                    },
+                    columns: [{
+                        data: null,
+                        render: function(row) {
+                            return `
+                                <div class="border rounded p-3 mb-3 bg-light">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="mb-1">${row.user_name}</h6>
+                                        <p class="mb-1 text-muted">${row.services_name}</p>
+                                        <small class="text-success">Recovered: ${row.booking_date}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="fw-bold text-success">₱${parseFloat(row.price).toFixed(2)}</div>
+                                        <small class="text-muted">Value Recovered</small>
+                                    </div>
+                                </div>
+                            </div>
+                            `;
+                        }
+                    }],
+                    paging: true,
+                    pageLength: 5,
+                    searching: true,
+                    ordering: false,
+                    info: false,
+                    dom: '<"top"f>rt<"bottom"p>'
+                });
+
+            }
+
+
+
+            function recoverBooking(bookingid) {
+                $.ajax({
+                    url: '../../controller/admin_dashboard_contr.php',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: {
+                        action: 'recover_booking',
+                        bookingid: bookingid
+                    },
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            loadForRecovered();
+                            loadrecentRecovered();
+                            Swal.fire({
+                                toast: true,
+                                position: 'top-end', // top, top-start, top-end, bottom, etc.
+                                icon: 'success', // success | error | warning | info | question
+                                title: response.message,
+                                showConfirmButton: false,
+                                timer: 3000, // auto-close in ms
+                                timerProgressBar: true
+                            });
+                        } else {
+                            Swal.fire({
+                                toast: true,
+                                position: 'top-end',
+                                icon: 'error',
+                                title: response.message,
+                                showConfirmButton: false,
+                                timer: 3000
+                            });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        Swal.fire({
+                            toast: true,
+                            position: 'top-end',
+                            icon: 'error',
+                            title: 'Something went wrong!',
+                            showConfirmButton: false,
+                            timer: 3000
+                        });
+                    }
                 });
 
             }

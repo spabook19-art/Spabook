@@ -30,5 +30,10 @@ if (isset($_POST['action'])) {
         case 'get_recoverable_bookings':
             echo $Admin->getRecoverableBookings($php_fetch);
             break;
+
+        case 'recover_booking':
+            $bookingid = trim($_POST['bookingid']);
+            echo $Admin->recoverBooking($php_update, $bookingid, $current_datetimestamp);
+            break;
     }
 }

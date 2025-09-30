@@ -115,11 +115,11 @@ $php_fetch = function ($table, $select = '*', $filters = [], $joins = []) {
         }
 
         // Always pick primary key for counting
-        if ($table === 'booking_details') {
-            $query['select'] = 'booking_id';
-        } else {
-            $query['select'] = 'id';
-        }
+        // if ($table === 'booking_details') {
+        //     $query['select'] = 'booking_id';
+        // } else {
+        //     $query['select'] = 'id';
+        // }
 
         $result = supabaseRequest('GET', $table, $query);
         if (isset($result['error'])) {
