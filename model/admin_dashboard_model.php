@@ -193,7 +193,7 @@ class Admin
     {
         // Update booking_details status to 'Confirmed' for the given bookingid
         $updateData = [
-            'status' => 'Confirmed',
+            'status' => 'Pending',
             'date_modified' => $current_datetimestamp
         ];
 
@@ -216,7 +216,7 @@ class Admin
         ]);
     }
 
-    public function loadBookingRequests($php_fetch)
+    public function loadBookingRequests($php_fetch, $status)
     {
         $result = [];
 
@@ -225,7 +225,7 @@ class Admin
             'booking',
             'bookingid, users(profile_picture,full_name), booking_details(bookingdetailsid,status, price,date_modified, services(service_name))',
             [
-                'booking_details.status' => 'Pending' // Only Pending bookings
+                'booking_details.status' => $status // Only Pending bookings
             ],
         );
 

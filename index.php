@@ -50,12 +50,11 @@
                         <p class="lead fw-bold mb-3">Sign in</p>
 
                         <!-- Google sign-in button -->
-                        <button type="button" id="google-signin-btn"
-                            class="btn btn-white w-100 border border-secondary rounded-pill d-flex align-items-center justify-content-center mb-3 shadow-sm"
-                            style="height: 48px;">
+                        <button type="button"
+                            id="google-signin-btn"
+                            class="btn btn-light w-100 border rounded-pill d-flex align-items-center justify-content-center mb-3 shadow-sm">
                             <i class="fa-brands fa-google me-2"></i> Continue with Google
                         </button>
-
                         <div class="divider d-flex align-items-center my-3">
                             <hr class="flex-grow-1" />
                             <span class="mx-3 fw-bold text-secondary">OR</span>
@@ -97,11 +96,7 @@
                         <div class="mb-3">
                             <p class="small text-dark mt-3 mb-0 text-start">Don't have an account? <a href="./views/sign_up.php"
                                     class="link-dark fw-bold">Sign up</a></p>
-                            <div class="text-center mt-3">
-                                <p class="small text-muted mb-1">
-                                    <i class="fas fa-info-circle me-1"></i>Staff can also login using this form
-                                </p>
-                            </div>
+
                         </div>
                     </form>
                 </div>

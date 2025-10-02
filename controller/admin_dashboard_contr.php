@@ -37,7 +37,8 @@ if (isset($_POST['action'])) {
             break;
 
         case 'load_booking_requests':
-            echo $Admin->loadBookingRequests($php_fetch);
+            $status = trim($_POST['status']);
+            echo $Admin->loadBookingRequests($php_fetch, $status);
             break;
 
         case 'get_booking_details':
