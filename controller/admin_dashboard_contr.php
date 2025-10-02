@@ -35,5 +35,24 @@ if (isset($_POST['action'])) {
             $bookingid = trim($_POST['bookingid']);
             echo $Admin->recoverBooking($php_update, $bookingid, $current_datetimestamp);
             break;
+
+        case 'load_booking_requests':
+            echo $Admin->loadBookingRequests($php_fetch);
+            break;
+
+        case 'get_booking_details':
+            $bookingdetailsid = trim($_POST['bookingdetailsid']);
+            echo $Admin->getBookingDetails($php_fetch, $bookingdetailsid);
+            break;
+
+        case 'decline_booking_request':
+            $bookingdetailsid = trim($_POST['bookingdetailsid']);
+            echo $Admin->declineBookingRequest($php_update, $bookingdetailsid, $current_datetimestamp);
+            break;
+
+        case 'accept_booking_request':
+            $bookingdetailsid = trim($_POST['bookingdetailsid']);
+            echo $Admin->acceptBookingRequest($php_update, $bookingdetailsid, $current_datetimestamp);
+            break;
     }
 }

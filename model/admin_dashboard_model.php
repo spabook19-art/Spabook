@@ -216,6 +216,147 @@ class Admin
         ]);
     }
 
+    public function loadBookingRequests($php_fetch)
+    {
+        $result = [];
+
+        // Fetch bookings with joins
+        $bookings = $php_fetch(
+            'booking',
+            'bookingid, users(profile_picture,full_name), booking_details(bookingdetailsid,status, price,date_modified, services(service_name))',
+            [
+                'booking_details.status' => 'Pending' // Only Pending bookings
+            ],
+        );
+
+        foreach ($bookings as $booking) {
+            // Handle nested arrays safely
+            $user       = $booking['users'] ?? null;
+            $fullname   = $user['full_name'] ?? 'Unknown User';
+            $profilePic = $user['profile_picture'] ?? '';
+
+            $detailsArr = $booking['booking_details'] ?? [];
+            foreach ($detailsArr as $details) {
+                $service    = $details['services'] ?? null;
+                $serviceName = $service['service_name'] ?? 'Unknown Service';
+
+                $result[] = [
+                    'bookingdetailsid'     => $details['bookingdetailsid'],
+                    'user_name'      => $fullname,
+                    'services_name'  => $serviceName,
+                    'price'          => $details['price'] ?? 0,
+                    'booking_date'   => date('M d, Y g:i A', strtotime($details['date_modified'] ?? 'now')),
+                    'booking_status' => $details['status'] ?? '',
+                    'profile_picture' => $profilePic ?? null
+                ];
+            }
+        }
+
+        return json_encode($result);
+    }
+
+    public function getBookingDetails($php_fetch, $bookingdetailsid)
+    {
+        $result = [];
+        // Fetch booking details with joins
+        $bookings = $php_fetch(
+            'booking',
+            'bookingid, payment_img, users(full_name, contact_number,email), booking_details(bookingdetailsid,status, price, quantity,schedule_start, services(service_name, description, per_minute,price))',
+            [
+                'booking_details.bookingdetailsid' => $bookingdetailsid
+            ],
+
+        );
+        foreach ($bookings as $booking) {
+            // Handle nested arrays safely
+            $user       = $booking['users'] ?? null;
+            $fullname   = $user['full_name'] ?? 'Unknown User';
+            $contact = $user['contact_number'] ?? 'Not Provided';
+            $email = $user['email'] ?? 'Not Provided';
+
+            $detailsArr = $booking['booking_details'] ?? [];
+            foreach ($detailsArr as $details) {
+                $service = $details['services'] ?? null;
+                $serviceName = $service['service_name'] ?? 'Unknown Service';
+                $servicDesc = $service['description'] ?? 'Unknown Service';
+                $serviceDuration = $service['per_minute'] ?? 'Unknown Service';
+                $servicePrice = $service['price'] ?? 'Unknown Service';
+
+                $result = [
+                    'booking_id'     => $details['bookingdetailsid'],
+                    'date_schedule'   => date('M d, Y ', strtotime($details['schedule_start']) ?? ''),
+                    'time_schedule'   => date('g:i A', strtotime($details['schedule_start']) ?? ''),
+                    'booking_status' => $details['status'] ?? '',
+                    'totalprice'     => $details['price'] ?? 0,
+                    'quantity'       => $details['quantity'] ?? 0,
+                    'serviceprice'   => $servicePrice ?? 0,
+                    'user_name'      => $fullname,
+                    'contact'        => $contact,
+                    'email'          => $email,
+                    'services_name'  => $serviceName,
+                    'service_description' => $servicDesc,
+                    'service_duration' => $serviceDuration,
+                    'payment_img'    => $booking['payment_img'] ?? null
+                ];
+            }
+        }
+        return json_encode($result);
+    }
+
+    public function declineBookingRequest($php_update, $bookingdetailsid, $current_datetimestamp)
+    {
+        // Update booking_details status to 'Rejected' for the given bookingdetailsid
+        $updateData = [
+            'status' => 'Cancelled',
+            'date_modified' => $current_datetimestamp
+        ];
+
+        $filters = [
+            'bookingdetailsid' => $bookingdetailsid
+        ];
+
+        $updateResult = $php_update('booking_details',  $updateData, $filters);
+
+        if (isset($updateResult['error'])) {
+            return json_encode([
+                'status' => 'error',
+                'message' => 'Failed to decline booking request: ' . $updateResult['error']
+            ]);
+        }
+
+        return json_encode([
+            'status' => 'success',
+            'message' => 'Booking request declined successfully.'
+        ]);
+    }
+
+    public function acceptBookingRequest($php_update, $bookingdetailsid, $current_datetimestamp)
+    {
+        // Update booking_details status to 'Confirmed' for the given bookingdetailsid
+        $updateData = [
+            'status' => 'Confirmed',
+            'date_modified' => $current_datetimestamp
+        ];
+
+        $filters = [
+            'bookingdetailsid' => $bookingdetailsid
+        ];
+
+        $updateResult = $php_update('booking_details',  $updateData, $filters);
+
+        if (isset($updateResult['error'])) {
+            return json_encode([
+                'status' => 'error',
+                'message' => 'Failed to accept booking request: ' . $updateResult['error']
+            ]);
+        }
+
+        return json_encode([
+            'status' => 'success',
+            'message' => 'Booking request accepted successfully.'
+        ]);
+    }
+
     //! ============================================================ ADMIN SECTION END ============================================================
 
 }

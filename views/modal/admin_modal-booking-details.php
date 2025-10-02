@@ -1,227 +1,96 @@
 <!-- Only the inner modal-content part -->
-<div class="modal-header">
-  <h5 class="modal-title">Booking Details</h5>
+<div class="modal-header bg-light border-0">
+  <h5 class="modal-title fw-bold text-primary">
+    <i class="bi bi-calendar-check me-2"></i> Booking Details
+  </h5>
   <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 </div>
+
 <div class="modal-body">
-  <div id="booking-details-content">
-    <div class="text-center p-4">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading...</span>
-      </div>
-      <p class="mt-2 text-muted">Loading booking details...</p>
-    </div>
-  </div>
-</div>
-<div class="modal-footer">
-  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-  <div id="booking-actions">
-    <!-- Action buttons will be loaded here -->
-  </div>
-</div>
-
-<script>
-$(document).ready(function() {
-  // Load booking details when modal data is available
-  if (window.modalData && window.modalData.bookingid) {
-    loadBookingDetails(window.modalData.bookingid);
-  }
-});
-
-function loadBookingDetails(bookingid) {
-  console.log('Loading booking details for ID:', bookingid);
-  
-  // Show loading state
-  $('#booking-details-content').html(`
-    <div class="text-center p-4">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading...</span>
-      </div>
-      <p class="mt-2 text-muted">Loading booking details...</p>
-    </div>
-  `);
-  
-  $.ajax({
-    url: '../controller/booking_contr.php',
-    type: 'POST',
-    data: { 
-      action: 'get_booking_details_admin',
-      bookingid: bookingid
-    },
-    dataType: 'json',
-    success: function(response) {
-      console.log('Booking details response:', response);
-      
-      if (response.status === 'error') {
-        $('#booking-details-content').html(`
-          <div class="alert alert-danger">
-            <i class="bi bi-exclamation-triangle me-2"></i>
-            ${response.message || 'Failed to load booking details'}
+  <div id="booking-details-content" class="p-3">
+    <div class="row g-4">
+      <!-- Customer Info -->
+      <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <h6 class="fw-bold mb-3 text-secondary">
+              <i class="bi bi-person-circle me-2"></i> Customer Information
+            </h6>
+            <p class="mb-2"><strong>Name:</strong> <span id="detail-user-name">—</span></p>
+            <p class="mb-2"><strong>Email:</strong> <span id="detail-user-email">—</span></p>
+            <p class="mb-0"><strong>Phone:</strong> <span id="detail-user-phone">—</span></p>
           </div>
-        `);
-        return;
-      }
-      
-      renderBookingDetails(response);
-    },
-    error: function(xhr, status, error) {
-      console.error('Error loading booking details:', error);
-      console.error('Status:', status);
-      console.error('Response text:', xhr.responseText);
-      
-      // Try to parse the error response
-      try {
-        if (xhr.responseText) {
-          const errorResponse = JSON.parse(xhr.responseText);
-          console.error('Parsed error response:', errorResponse);
-        }
-      } catch (e) {
-        console.error('Could not parse error response as JSON');
-      }
-      
-      $('#booking-details-content').html(`
-        <div class="alert alert-danger">
-          <i class="bi bi-exclamation-triangle me-2"></i>
-          Failed to load booking details. Please try again.
-          <div class="mt-2 small text-muted">Error: ${error}</div>
         </div>
-      `);
-    }
-  });
-}
+      </div>
 
-function renderBookingDetails(booking) {
-  const bookingDate = new Date(booking.booking_date).toLocaleDateString();
-  const bookingTime = new Date(booking.booking_date).toLocaleTimeString();
-  
-  let servicesHtml = '';
-  booking.services.forEach(service => {
-    servicesHtml += `
-      <div class="border rounded p-3 mb-2">
-        <h6 class="mb-1">${service.name}</h6>
-        <p class="text-muted small mb-1">${service.description}</p>
-        <div class="row">
-          <div class="col-sm-4"><small><strong>Duration:</strong> ${service.duration} min</small></div>
-          <div class="col-sm-4"><small><strong>Quantity:</strong> ${service.quantity}</small></div>
-          <div class="col-sm-4"><small><strong>Price:</strong> ₱${service.price}</small></div>
+      <!-- Booking Info -->
+      <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <h6 class="fw-bold mb-3 text-secondary">
+              <i class="bi bi-info-circle me-2"></i> Booking Information
+            </h6>
+            <p class="mb-2"><strong>Booking ID:</strong> #<span id="detail-booking-id">—</span></p>
+            <p class="mb-2"><strong>Date:</strong> <span id="detail-booking-date">—</span></p>
+            <p class="mb-2"><strong>Time:</strong> <span id="detail-booking-time">—</span></p>
+            <p class="mb-2"><strong>Status:</strong> <span id="detail-booking-status">—</span></p>
+            <p class="mb-0"><strong>Total:</strong>
+              <span class="text-success fw-bold">₱<span id="detail-total-price">0</span></span>
+            </p>
+          </div>
         </div>
-      </div>
-    `;
-  });
-  
-  const statusBadge = booking.booking_status === 'Pending' ? 
-    '<span class="badge bg-warning text-dark">Pending</span>' :
-    booking.booking_status === 'Confirmed' ?
-    '<span class="badge bg-success">Confirmed</span>' :
-    '<span class="badge bg-danger">Rejected</span>';
-  
-  $('#booking-details-content').html(`
-    <div class="row">
-      <div class="col-md-6">
-        <h6>Customer Information</h6>
-        <p><strong>Name:</strong> ${booking.user_name}</p>
-        <p><strong>Email:</strong> ${booking.user_email}</p>
-        <p><strong>Phone:</strong> ${booking.user_phone}</p>
-      </div>
-      <div class="col-md-6">
-        <h6>Booking Information</h6>
-        <p><strong>Booking ID:</strong> #${booking.bookingid}</p>
-        <p><strong>Date:</strong> ${bookingDate}</p>
-        <p><strong>Time:</strong> ${bookingTime}</p>
-        <p><strong>Status:</strong> ${statusBadge}</p>
-        <p><strong>Total Amount:</strong> <span class="text-success fw-bold">₱${booking.total_price}</span></p>
       </div>
     </div>
-    
-    <hr>
-    
-    <h6>Services Requested</h6>
-    ${servicesHtml}
-    
-    ${booking.payment_img ? `
-      <hr>
-      <h6>Payment Receipt</h6>
+
+    <hr class="my-4">
+
+    <!-- Services -->
+    <h6 class="fw-bold text-secondary mb-3">
+      <i class="bi bi-list-check me-2"></i> Services Requested
+    </h6>
+    <div id="detail-services-list" class="row g-3">
+      <!-- Example service card -->
+      <div class="col-md-6">
+        <div class="card border shadow-sm rounded-3">
+          <div class="card-body">
+            <h6 class="mb-1" id="service-name">Service Name</h6>
+            <p class="text-muted small mb-2" id="service-description">Description goes here</p>
+            <div class="d-flex justify-content-between small">
+              <span><i class="bi bi-clock me-1"></i> <strong>Duration:</strong> <span id="service-duration">—</span> min</span>
+              <span><i class="bi bi-123 me-1"></i> <strong>Qty:</strong> <span id="service-quantity">—</span></span>
+              <span><i class="bi bi-cash me-1"></i> <strong>₱</strong><span id="service-price">0</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment Receipt -->
+    <div id="detail-payment" class="mt-4">
+      <h6 class="fw-bold text-secondary mb-3">
+        <i class="bi bi-receipt me-2"></i> Payment Receipt
+      </h6>
       <div class="text-center">
-        <img src="data:image/png;base64,${booking.payment_img}" 
-             class="img-fluid rounded border" 
-             style="max-height: 300px; cursor: pointer;"
-             onclick="window.open(this.src, '_blank')"
-             alt="Payment Receipt">
+        <img id="detail-payment-img" src=""
+          class="img-fluid rounded shadow-sm border"
+          style="max-height: 300px; cursor: pointer;"
+          alt="Payment Receipt">
         <p class="small text-muted mt-2">Click image to view full size</p>
       </div>
-    ` : ''}
-  `);
-  
-  // Show action buttons only for pending bookings
-  if (booking.booking_status === 'Pending') {
-    $('#booking-actions').html(`
-      <button type="button" class="btn btn-danger me-2" onclick="declineBookingFromModal(${booking.bookingid})">
-        <i class="bi bi-x-circle"></i> Decline
-      </button>
-      <button type="button" class="btn btn-success" onclick="acceptBookingFromModal(${booking.bookingid})">
-        <i class="bi bi-check-circle"></i> Accept
-      </button>
-    `);
-  } else {
-    $('#booking-actions').html('');
-  }
-}
+    </div>
+  </div>
+</div>
 
-function acceptBookingFromModal(bookingid) {
-  if (confirm('Are you sure you want to accept this booking?')) {
-    $.ajax({
-      url: '../controller/booking_contr.php',
-      type: 'POST',
-      data: { 
-        action: 'accept_booking',
-        bookingid: bookingid
-      },
-      dataType: 'json',
-      success: function(response) {
-        if (response.status === 'success') {
-          alert('✅ Booking accepted successfully!');
-          $('#globalModal').modal('hide');
-          // Reload the booking requests page if it exists
-          if (typeof loadBookingRequests === 'function') {
-            loadBookingRequests();
-          }
-        } else {
-          alert('❌ Failed to accept booking. Please try again.');
-        }
-      },
-      error: function() {
-        alert('❌ Network error. Please try again.');
-      }
-    });
-  }
-}
-
-function declineBookingFromModal(bookingid) {
-  if (confirm('Are you sure you want to decline this booking?')) {
-    $.ajax({
-      url: '../controller/booking_contr.php',
-      type: 'POST',
-      data: { 
-        action: 'decline_booking',
-        bookingid: bookingid
-      },
-      dataType: 'json',
-      success: function(response) {
-        if (response.status === 'success') {
-          alert('✅ Booking declined successfully!');
-          $('#globalModal').modal('hide');
-          // Reload the booking requests page if it exists
-          if (typeof loadBookingRequests === 'function') {
-            loadBookingRequests();
-          }
-        } else {
-          alert('❌ Failed to decline booking. Please try again.');
-        }
-      },
-      error: function() {
-        alert('❌ Network error. Please try again.');
-      }
-    });
-  }
-}
-</script>
+<div class="modal-footer bg-light border-0">
+  <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+    <i class="bi bi-x-lg me-1"></i> Close
+  </button>
+  <div id="booking-actions">
+    <button type="button" class="btn btn-danger me-2 declinefrommodal" onclick="declineRequest(this.value)">
+      <i class="bi bi-x-circle me-1"></i> Decline
+    </button>
+    <button type="button" class="btn btn-success acceptfrommodal" onclick="acceptRequest(this.value)">
+      <i class="bi bi-check-circle me-1"></i> Accept
+    </button>
+  </div>
+</div>

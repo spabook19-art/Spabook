@@ -231,7 +231,7 @@
         <script>
             setTimeout(function() {
                 $('#admin_home_page').addClass('active');
-            }, 500);
+            }, 1000);
 
 
             loadTotalbooking();
@@ -346,17 +346,6 @@
                 if ($.fn.DataTable.isDataTable('#appointmentHistoryTable')) {
                     $('#appointmentHistoryTable').DataTable().clear().destroy();
                 }
-                $.ajax({
-                    url: '../../controller/admin_dashboard_contr.php',
-                    type: 'POST',
-                    dataType: 'json',
-                    data: {
-                        action: 'get_appointment_history'
-                    },
-                    success: function(response) {
-                        console.log('Total appointment response:', response);
-                    }
-                });
 
                 let appointment_history = $('#appointmentHistoryTable').DataTable({
                     responsive: true,

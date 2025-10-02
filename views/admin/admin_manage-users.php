@@ -335,7 +335,6 @@ include_once '../../helper/admin_apps.php' ?>
     });
   }
 
-
   function editUser(userId) {
     // const user = regularUsers.find(u => u.user_id === userId);
     showGlobalModal('../../views/modal/admin_modal-edit-user.php');
@@ -366,7 +365,6 @@ include_once '../../helper/admin_apps.php' ?>
       }
     });
   }
-
 
   function viewUser(userId) {
     showGlobalModal('../../views/modal/admin_modal-view-user.php');
