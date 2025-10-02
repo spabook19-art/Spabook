@@ -108,7 +108,7 @@ function loadTherapists(serviceId) {
     $('#confirmServiceBtn').prop('disabled', true);
 
     $.ajax({
-        url: '../controller/therapist_contr.php',
+        url: '../../controller/therapist_contr.php',
         type: 'POST',
         dataType: 'json',
         data: {
