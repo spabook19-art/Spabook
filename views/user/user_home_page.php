@@ -22,7 +22,12 @@
 
                     <!-- Right Side: Status and Recent Services -->
                     <div class="col-lg-4 col-md-5 col-sm-12">
-                        <button class="btn btn-primary w-100 mb-3">Book an Appointment</button>
+                        <button class="btn btn-primary w-100 mb-2 position-relative" id="bookAppointmentBtn">
+                            <i class="bi bi-calendar-check me-2"></i>Book-appointment
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" id="cartBadge">
+                                0
+                            </span>
+                        </button>
 
                         <!-- Booking Status Section -->
                         <div class="card mb-3" style="background-color: transparent; border: none;">
@@ -61,6 +66,10 @@
 include_once '../../helper/user_apps.php' ?>
 
 <script>
+    // Initialize cart early (before anything else)
+    window.serviceCart = window.serviceCart || [];
+    console.log('🛒 Cart initialized:', window.serviceCart);
+
     // Safe to do AJAX now
     setTimeout(function() {
         $('#user_home_page').addClass('active');
@@ -70,6 +79,46 @@ include_once '../../helper/user_apps.php' ?>
         loadServices();
         loadBookingStatus();
         loadRecentServices();
+    });
+
+    // Load cart AFTER user_id is ready in sessionStorage
+    window.addEventListener('user_id_ready', function() {
+        // Try to load cart with retry mechanism
+        let attempts = 0;
+        const maxAttempts = 10;
+        
+        function tryLoadCart() {
+            attempts++;
+            console.log('🔄 Attempt', attempts, 'to load cart...');
+            
+            if (typeof window.loadCartFromStorage === 'function') {
+                const userId = sessionStorage.getItem('user_id');
+                console.log('✅ Found loadCartFromStorage! Loading cart for user:', userId);
+                
+                window.serviceCart = window.loadCartFromStorage() || [];
+                
+                if (window.serviceCart.length > 0) {
+                    console.log('✅ Cart loaded with items:', window.serviceCart);
+                    if (typeof window.updateCheckoutBadge === 'function') {
+                        window.updateCheckoutBadge();
+                    }
+                } else {
+                    console.log('ℹ️ Cart is empty after loading');
+                }
+            } else {
+                console.warn('⚠️ loadCartFromStorage not available yet, attempt', attempts);
+                
+                if (attempts < maxAttempts) {
+                    setTimeout(tryLoadCart, 200); // Try again after 200ms
+                } else {
+                    console.error('❌ Failed to load cart after', maxAttempts, 'attempts');
+                    console.error('❌ Available functions:', Object.keys(window).filter(k => k.includes('Cart')));
+                }
+            }
+        }
+        
+        // Start trying after 100ms
+        setTimeout(tryLoadCart, 100);
     });
 
     // Also load data when this page becomes visible
@@ -270,6 +319,13 @@ include_once '../../helper/user_apps.php' ?>
         });
     }
 
+    // Function to refresh booking data after successful booking
+    window.refreshBookingData = function() {
+        console.log('Refreshing booking data...');
+        window.loadBookingStatus();
+        window.loadRecentServices();
+    }
+
     // Helper functions for status styling
     function getStatusClass(status) {
         switch (status?.toLowerCase()) {
@@ -307,7 +363,7 @@ include_once '../../helper/user_apps.php' ?>
 
     // Initialize service cart (make it globally accessible)
     let serviceCart = [];
-    window.serviceCart = window.serviceCart || []; // Preserve existing cart or create new
+    window.serviceCart = window.serviceCart || []; // Initialize empty cart
     serviceCart = window.serviceCart; // Sync local reference
 
     // Event delegation for service card clicks
@@ -337,31 +393,37 @@ include_once '../../helper/user_apps.php' ?>
         const cart = window.serviceCart || [];
         serviceCart = [...cart]; // Sync local reference with a fresh copy
 
-        // Find checkout button with multiple selectors to ensure we get it
-        let checkoutBtn = $('.btn-primary:contains("Check-out")');
-        if (checkoutBtn.length === 0) {
-            checkoutBtn = $('.btn-success:contains("Check-out")');
-        }
-        if (checkoutBtn.length === 0) {
-            checkoutBtn = $('.btn:contains("Check-out")').first();
-        }
-
+        // Use the button with ID
+        const bookingBtn = $('#bookAppointmentBtn');
+        
         const totalItems = cart.length;
         const totalPrice = cart.reduce((sum, service) => sum + (service.price * service.people), 0);
 
         if (totalItems > 0) {
-            checkoutBtn.html(`Check-out (${totalItems}) - ₱${totalPrice}`);
-            checkoutBtn.removeClass('btn-primary').addClass('btn-success');
+            // Update button to show total price with badge showing item count
+            bookingBtn.html(`
+                <i class="bi bi-calendar-check me-2"></i>Book-appointment - ₱${totalPrice.toLocaleString()}
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="cartBadge" style="animation: badgePulse 0.5s ease-in-out;">
+                    ${totalItems}
+                </span>
+            `);
+            bookingBtn.removeClass('btn-primary').addClass('btn-success');
         } else {
-            checkoutBtn.html('Check-out');
-            checkoutBtn.removeClass('btn-success').addClass('btn-primary');
+            // Reset button to default state with hidden badge
+            bookingBtn.html(`
+                <i class="bi bi-calendar-check me-2"></i>Book-appointment
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" id="cartBadge">
+                    0
+                </span>
+            `);
+            bookingBtn.removeClass('btn-success').addClass('btn-primary');
         }
 
         console.log('Cart updated - Items:', totalItems, 'Total:', totalPrice); // Debug log
     };
 
     // Checkout button click handler
-    $(document).on('click', '.btn:contains("Check-out")', function(e) {
+    $(document).on('click', '.btn:contains("Book-appointment")', function(e) {
         e.preventDefault();
         const currentCart = window.serviceCart || [];
 
@@ -624,6 +686,44 @@ include_once '../../helper/user_apps.php' ?>
 
     .badge:hover {
         transform: scale(1.05);
+    }
+
+    /* Cart badge styling and animation */
+    #cartBadge {
+        font-size: 0.75rem;
+        font-weight: 600;
+        min-width: 20px;
+        height: 20px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        animation: badgePulse 0.5s ease-in-out;
+    }
+
+    @keyframes badgePulse {
+        0% {
+            transform: translate(-50%, -50%) scale(0.5);
+            opacity: 0;
+        }
+        50% {
+            transform: translate(-50%, -50%) scale(1.2);
+        }
+        100% {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+    }
+
+    #bookAppointmentBtn {
+        position: relative;
+        overflow: visible;
+        transition: all 0.3s ease-in-out;
+    }
+
+    #bookAppointmentBtn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     }
 
     /* List item hover effects */

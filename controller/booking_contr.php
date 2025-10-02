@@ -49,15 +49,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     switch ($action) {
         case 'create_booking':
+            // Debug logging
+            error_log('=== CREATE_BOOKING CALLED ===');
+            error_log('Timestamp: ' . date('Y-m-d H:i:s'));
+            
             $user_id = $_POST['user_id'] ?? null;
             $total_price = $_POST['total_price'] ?? null;
             $payment_img = $_POST['payment_img'] ?? null;
             $services = isset($_POST['services']) ? json_decode($_POST['services'], true) : [];
 
+            error_log('User ID: ' . $user_id);
+            error_log('Total Price: ' . $total_price);
+            error_log('Services Count: ' . count($services));
+            error_log('Services: ' . print_r($services, true));
+
             if (!$user_id || !$total_price || !$payment_img || empty($services)) {
                 response(['status' => 'error', 'message' => 'Missing booking or services data']);
             }
 
+            error_log('Creating booking in database...');
             $bookingData = $BookingModel->createBooking($php_insert, 'booking', [
                 'user_id' => $user_id,
                 'total_price' => $total_price,
@@ -71,43 +81,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (isset($bookingData['bookingid'])) {
                 $bookingId = $bookingData['bookingid'];
+                error_log('Booking created successfully! Booking ID: ' . $bookingId);
 
+                // Process each service
+                error_log('Processing ' . count($services) . ' services...');
                 foreach ($services as $service) {
-                    // If service has therapist assignments, create multiple booking details (one per person/therapist)
-                    if (isset($service['therapists']) && is_array($service['therapists']) && count($service['therapists']) > 0) {
-                        // Create separate booking detail for each person with their assigned therapist
-                        for ($person = 1; $person <= $service['people']; $person++) {
-                            // Find therapist for this person
-                            $assignedTherapist = null;
+                    $numPeople = intval($service['people'] ?? 1);
+                    
+                    // Create separate booking_detail row for EACH person (quantity)
+                    for ($person = 1; $person <= $numPeople; $person++) {
+                        // Find therapist for this person (if assigned)
+                        $assignedTherapistId = null;
+                        
+                        if (isset($service['therapists']) && is_array($service['therapists'])) {
                             foreach ($service['therapists'] as $therapist) {
-                                if ($therapist['person'] == $person) {
-                                    $assignedTherapist = $therapist;
+                                if (isset($therapist['person']) && $therapist['person'] == $person) {
+                                    $assignedTherapistId = $therapist['therapistId'] ?? null;
                                     break;
                                 }
                             }
-
-                            $BookingModel->addBookingDetail($php_insert, 'booking_details', [
-                                'booking_id' => $bookingId,
-                                'service_id' => $service['id'],
-                                'quantity' => 1, // 1 person per detail when therapists are assigned
-                                'price' => $service['price'],
-                                'therapist_id' => $assignedTherapist ? $assignedTherapist['therapistId'] : null,
-                                'person_number' => $person,
-                                'booking_date' => $service['selectedDate'] ?? null,
-                                'booking_time' => $service['selectedTime'] ?? null
-                            ]);
                         }
-                    } else {
-                        // No specific therapist assignments, create single booking detail
+                        
+                        // Insert one row per person with quantity = 1
                         $BookingModel->addBookingDetail($php_insert, 'booking_details', [
                             'booking_id' => $bookingId,
                             'service_id' => $service['id'],
-                            'quantity' => $service['people'],
+                            'quantity' => 1, // Always 1 per row (one row per person)
                             'price' => $service['price'],
-                            'therapist_id' => null,
-                            'person_number' => null,
-                            'booking_date' => $service['selectedDate'] ?? null,
-                            'booking_time' => $service['selectedTime'] ?? null
+                            'therapist_id' => $assignedTherapistId, // NULL if not assigned
+                            'schedule_start' => null, // Admin will set later
+                            'schedule_end' => null, // Admin will set later
+                            'status' => 'Pending' // Default status
                         ]);
                     }
                 }

@@ -79,16 +79,18 @@ function initializeBookingModal() {
             $('#selected-service-image').attr('src', serviceData.image);
         }
         
-        // Only load therapists for "Special Treatment for Stroke Patient" service
+        // Only load therapists for stroke treatment services
         const serviceName = (serviceData.name || '').toLowerCase();
-        if (serviceName.includes('special treatment for stroke')) {
-            console.log('🔄 Loading therapists for service ID:', serviceData.id);
+        const isStrokeTreatment = serviceName.includes('stroke') || serviceName.includes('special treatment for stroke');
+        
+        if (isStrokeTreatment) {
+            console.log('🔄 Loading therapists for stroke treatment service ID:', serviceData.id);
             // Show therapist selection section
             $('.mb-3').has('#therapist-selection-container').show();
             loadTherapists(serviceData.id);
         } else {
-            console.log('ℹ️ Therapist selection not required for this service');
-            // Hide therapist selection section for other services
+            console.log('ℹ️ Therapist selection not required - auto-assignment will be used');
+            // Hide therapist selection section for non-stroke services
             $('.mb-3').has('#therapist-selection-container').hide();
             $('#confirmServiceBtn').prop('disabled', false);
         }
