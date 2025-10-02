@@ -1,3 +1,85 @@
+// 🚨 DIAGNOSTIC: Prove modal.js is loading
+console.log('🚀 modal.js FILE STARTED LOADING!');
+
+// ============ LocalStorage Cart Persistence ============
+// Save cart to LocalStorage
+function saveCartToStorage() {
+  try {
+    const userId = sessionStorage.getItem('user_id');
+    console.log('💾 Saving cart - User ID:', userId);
+    if (userId) {
+      const cartKey = `serviceCart_${userId}`;
+      const cartData = JSON.stringify(window.serviceCart || []);
+      localStorage.setItem(cartKey, cartData);
+      console.log('✅ Cart saved to LocalStorage:', window.serviceCart);
+      console.log('📦 Storage Key:', cartKey);
+    } else {
+      console.warn('⚠️ Cannot save cart: user_id not found in sessionStorage');
+    }
+  } catch (error) {
+    console.error('❌ Error saving cart to LocalStorage:', error);
+  }
+}
+
+// Load cart from LocalStorage
+function loadCartFromStorage() {
+  try {
+    const userId = sessionStorage.getItem('user_id');
+    console.log('📂 Loading cart - User ID:', userId);
+    if (userId) {
+      const cartKey = `serviceCart_${userId}`;
+      const savedCart = localStorage.getItem(cartKey);
+      console.log('📦 Storage Key:', cartKey);
+      console.log('📄 Raw saved data:', savedCart);
+      
+      if (savedCart) {
+        window.serviceCart = JSON.parse(savedCart);
+        console.log('✅ Cart loaded from LocalStorage:', window.serviceCart);
+        return window.serviceCart;
+      } else {
+        console.log('ℹ️ No saved cart found in LocalStorage');
+      }
+    } else {
+      console.warn('⚠️ Cannot load cart: user_id not found in sessionStorage');
+    }
+  } catch (error) {
+    console.error('❌ Error loading cart from LocalStorage:', error);
+  }
+  return [];
+}
+
+// Clear cart from LocalStorage
+function clearCartFromStorage() {
+  try {
+    const userId = sessionStorage.getItem('user_id');
+    console.log('🗑️ Clearing cart - User ID:', userId);
+    if (userId) {
+      const cartKey = `serviceCart_${userId}`;
+      localStorage.removeItem(cartKey);
+      console.log('✅ Cart cleared from LocalStorage');
+      console.log('📦 Cleared Key:', cartKey);
+    } else {
+      console.warn('⚠️ Cannot clear cart: user_id not found in sessionStorage');
+    }
+  } catch (error) {
+    console.error('❌ Error clearing cart from LocalStorage:', error);
+  }
+}
+
+// Make functions globally accessible
+window.saveCartToStorage = saveCartToStorage;
+window.loadCartFromStorage = loadCartFromStorage;
+window.clearCartFromStorage = clearCartFromStorage;
+
+// Log that functions are ready
+console.log('🎯 Cart persistence functions loaded and ready!');
+console.log('✅ Available:', {
+    saveCart: typeof window.saveCartToStorage,
+    loadCart: typeof window.loadCartFromStorage,
+    clearCart: typeof window.clearCartFromStorage
+});
+// ============ End Cart Persistence ============
+
 function showGlobalModal(contentUrl, params = {}, callback = null) {
   $('.modal-backdrop').remove();
   $('body').removeClass('modal-open').css('padding-right', '');
@@ -196,6 +278,9 @@ function addServiceToCart(serviceData, numPeople, therapists) {
 
   // Add to cart
   window.serviceCart.push(serviceToAdd);
+  
+  // Save cart to LocalStorage
+  saveCartToStorage();
 
   console.log('Service added with therapists:', serviceToAdd);
 

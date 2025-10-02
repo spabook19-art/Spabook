@@ -94,8 +94,8 @@ function initializePaymentModal() {
         }
     });
     
-    // Handle booking submission
-    $('#submitBookingBtn').on('click', function() {
+    // Handle booking submission (remove old listeners first, then attach once)
+    $('#submitBookingBtn').off('click').one('click', function() {
         submitBookingWithPayment();
     });
 }
@@ -162,9 +162,16 @@ function displayFinalBookingSummary() {
 }
 
 function submitBookingWithPayment() {
+    console.log('submitBookingWithPayment called - STARTING');
+    
+    // Disable button immediately to prevent double submission
+    const $submitBtn = $('#submitBookingBtn');
+    $submitBtn.prop('disabled', true);
+    
     const receiptFile = $('#receiptUpload')[0].files[0];
     
     if (!receiptFile) {
+        $submitBtn.prop('disabled', false);
         Swal.fire({
             icon: 'warning',
             title: 'Receipt Required',
@@ -197,6 +204,13 @@ function submitBookingWithPayment() {
             services: JSON.stringify(servicesForSubmission)
         };
         
+        console.log('Submitting booking with data:', {
+            user_id: submissionData.user_id,
+            total_price: submissionData.total_price,
+            servicesCount: servicesForSubmission.length,
+            services: servicesForSubmission
+        });
+        
         // Show loading
         Swal.fire({
             title: 'Processing Your Booking...',
@@ -226,6 +240,12 @@ function submitBookingWithPayment() {
                 if (response.status === 'success') {
                     // Clear the cart
                     window.serviceCart = [];
+                    
+                    // Clear cart from LocalStorage
+                    if (typeof window.clearCartFromStorage === 'function') {
+                        window.clearCartFromStorage();
+                    }
+                    
                     if (typeof window.updateCheckoutBadge === 'function') {
                         window.updateCheckoutBadge();
                     }
@@ -264,6 +284,7 @@ function submitBookingWithPayment() {
                         }
                     });
                 } else {
+                    $submitBtn.prop('disabled', false);
                     Swal.fire({
                         icon: 'error',
                         title: 'Booking Failed',
@@ -272,6 +293,7 @@ function submitBookingWithPayment() {
                 }
             },
             error: function(xhr, status, error) {
+                $submitBtn.prop('disabled', false);
                 Swal.fire({
                     icon: 'error',
                     title: 'Connection Error',

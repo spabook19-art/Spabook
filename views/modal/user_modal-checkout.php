@@ -31,8 +31,8 @@
     </div>
 </div>
 
-<div class="modal-footer">
-    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+<div class="modal-footer d-flex justify-content-end">
+    <button type="button" class="btn btn-secondary me-2" id="cancelBookingBtn">Cancel</button>
     <button type="button" class="btn btn-success" id="proceedToPaymentBtn" disabled>
         <i class="bi bi-credit-card me-1"></i>Proceed to Payment
     </button>
@@ -44,6 +44,29 @@
         setTimeout(() => {
             initializeCheckout();
         }, 100);
+
+        // Handle Cancel button - clear cart and close modal
+        $('#cancelBookingBtn').on('click', function() {
+            console.log('🚫 Cancel clicked - clearing cart...');
+            
+            // Clear cart from storage
+            if (typeof window.clearCartFromStorage === 'function') {
+                window.clearCartFromStorage();
+            }
+            
+            // Clear cart in memory
+            window.serviceCart = [];
+            
+            // Update badge on main page
+            if (typeof window.updateCheckoutBadge === 'function') {
+                window.updateCheckoutBadge();
+            }
+            
+            // Close the modal (using globalModal ID)
+            $('#globalModal').modal('hide');
+            
+            console.log('✅ Cart cleared and modal closed');
+        });
     });
 
     var checkoutData = {
@@ -237,7 +260,30 @@
         const service = checkoutData.services[serviceIndex];
         const container = $(`.therapist-selection-container[data-service-index="${serviceIndex}"]`);
 
-        // Show loading state
+        // Check if this is a stroke treatment service
+        const isStrokeTreatment = service.name && 
+            (service.name.toLowerCase().includes('stroke') || 
+             service.name.toLowerCase().includes('special treatment for stroke'));
+
+        // Only load therapists for stroke treatment services
+        if (!isStrokeTreatment) {
+            // For non-stroke services, skip therapist selection
+            container.html(`
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Therapist will be automatically assigned for this service.
+                </div>
+            `);
+            
+            // Mark as completed without therapist
+            checkoutData.services[serviceIndex].selectedTherapists = [];
+            checkoutData.services[serviceIndex].noTherapistNeeded = true;
+            updateBookingSummary();
+            validateCheckout();
+            return;
+        }
+
+        // Show loading state for stroke treatment
         container.html(`
         <div class="text-center py-3">
             <div class="spinner-border spinner-border-sm text-primary" role="status">
@@ -435,7 +481,7 @@
 
             const therapistInfo = service.selectedTherapists.length > 0 ?
                 service.selectedTherapists.map(t => `Person ${t.person}: ${t.therapistName}`).join(', ') :
-                'No therapists selected';
+                (service.noTherapistNeeded || service.proceedWithoutTherapist ? 'Auto-assigned' : 'No therapists selected');
 
             summaryHtml += `
             <div class="summary-item mb-3 p-2 border-start border-3 border-primary">
@@ -493,6 +539,11 @@
 
         // Remove from global cart
         window.serviceCart.splice(index, 1);
+        
+        // Save updated cart to LocalStorage
+        if (typeof window.saveCartToStorage === 'function') {
+            window.saveCartToStorage();
+        }
 
         // Update checkout button
         if (typeof window.updateCheckoutBadge === 'function') {
@@ -529,8 +580,11 @@
         });
     }
 
-    // Handle proceed to payment
-    $('#proceedToPaymentBtn').on('click', function() {
+    // Handle proceed to payment (remove old listeners first, then attach once)
+    $('#proceedToPaymentBtn').off('click').one('click', function() {
+        // Disable button to prevent double clicks
+        $(this).prop('disabled', true);
+        
         // Prepare booking data for payment
         const bookingData = {
             services: checkoutData.services.map(service => ({
@@ -552,7 +606,7 @@
         $('#globalModal').modal('hide');
 
         setTimeout(() => {
-            showGlobalModal('../views/modal/user_modal-payment.php', bookingData);
+            showGlobalModal('../../views/modal/user_modal-payment.php', bookingData);
         }, 300);
     });
 </script>
