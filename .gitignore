@@ -24,7 +24,6 @@ test_*.log
 # PHP Development Files
 # -----------------------------------------------------------------------------
 # Composer dependencies (if using Composer)
-/vendor/
 composer.phar
 composer.lock
 
