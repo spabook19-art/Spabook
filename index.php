@@ -240,9 +240,9 @@
                                 Swal.fire('Error', result.error, 'error');
                             } else {
                                 if (result === 'Admin') {
-                                    window.location.href = './views/admin_home_page';
+                                    window.location.href = './views/admin/admin_home_page';
                                 } else if (result === 'User') {
-                                    window.location.href = './views/user_home_page';
+                                    window.location.href = './views/user/user_home_page';
                                 } else {
                                     Swal.fire('Error', 'Unexpected response: ' + result, 'error');
                                 }
@@ -277,7 +277,7 @@
                 const {
                     error
                 } = await supabase.auth.resetPasswordForEmail(email, {
-                    redirectTo: window.location.origin + '../views/reset_password.php' // or your callback page
+                    redirectTo: 'http://localhost/Spabook_2/views/reset_password.php' // or your callback page
                 });
                 if (error) {
                     Swal.fire('Error', error.message, 'error');

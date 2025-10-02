@@ -154,8 +154,22 @@
                 if (error) {
                     Swal.fire('Error', error.message, 'error');
                 } else {
-                    Swal.fire('Success', 'Your password has been reset. Please log in.', 'success').then(() => {
-                        window.location.href = '../index.php';
+                    Swal.fire({
+                        title: 'Success!',
+                        text: 'Your password has been reset. Do you want to continue to login?',
+                        icon: 'success',
+                        showCancelButton: true,
+                        confirmButtonText: 'Continue to Login',
+                        cancelButtonText: 'No, go to Homepage'
+                    }).then(async (result) => {
+                        if (result.isConfirmed) {
+
+                            window.location.href = '../index.php';
+                        } else {
+
+                            await supabase.auth.signOut();
+                            window.location.href = '../index.php';
+                        }
                     });
                 }
             }
