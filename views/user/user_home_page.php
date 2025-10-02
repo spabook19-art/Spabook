@@ -22,7 +22,7 @@
 
                     <!-- Right Side: Status and Recent Services -->
                     <div class="col-lg-4 col-md-5 col-sm-12">
-                        <button class="btn btn-primary w-100 mb-3">Check-out</button>
+                        <button class="btn btn-primary w-100 mb-3">Book an Appointment</button>
 
                         <!-- Booking Status Section -->
                         <div class="card mb-3" style="background-color: transparent; border: none;">

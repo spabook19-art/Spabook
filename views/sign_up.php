@@ -37,7 +37,7 @@
                             </h3>
                         </div>
                         <p class="text-white fs-5" style="max-width: 420px;">
-                            Streamline your booking process for error-free, time-saving operations. Improve spa service details, offer
+                            Booking process for error-free, time-saving operations. Improve spa service details, offer
                             real-time booking, and simplify appointment management.
                         </p>
                     </div>

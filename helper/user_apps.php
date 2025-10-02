@@ -5,10 +5,6 @@
                         <button class="btn app_close_sidebar_btn d-md-none d-block px-1 py-0 text-white">
                             <i class="fa-solid fa-bars-staggered"></i>
                         </button>
-                    </div>
-                    <div class="app_sidebar_link text-white fw-bold px-4 py-2 d-flex align-items-center" style="cursor: default;">
-                        <i class="pe-2 bi bi-person-gear fs-5 " style="font-size: 1.25rem;"></i>
-                        Admin Panel
                     </div>`;
     html += `<ul class="list-unstyled px-2">
                     <li class="app_sidebar_item" id="user_home_page">

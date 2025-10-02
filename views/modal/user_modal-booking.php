@@ -42,7 +42,7 @@
 
 <div class="modal-footer">
   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-  <button type="button" class="btn btn-primary" id="confirmServiceBtn" disabled>Add to Cart</button>
+  <button type="button" class="btn btn-primary" id="confirmServiceBtn" disabled>Add</button>
 </div>
 
 <script>
@@ -79,9 +79,19 @@ function initializeBookingModal() {
             $('#selected-service-image').attr('src', serviceData.image);
         }
         
-        // Load therapists for this service
-        console.log('🔄 Loading therapists for service ID:', serviceData.id);
-        loadTherapists(serviceData.id);
+        // Only load therapists for "Special Treatment for Stroke Patient" service
+        const serviceName = (serviceData.name || '').toLowerCase();
+        if (serviceName.includes('special treatment for stroke')) {
+            console.log('🔄 Loading therapists for service ID:', serviceData.id);
+            // Show therapist selection section
+            $('.mb-3').has('#therapist-selection-container').show();
+            loadTherapists(serviceData.id);
+        } else {
+            console.log('ℹ️ Therapist selection not required for this service');
+            // Hide therapist selection section for other services
+            $('.mb-3').has('#therapist-selection-container').hide();
+            $('#confirmServiceBtn').prop('disabled', false);
+        }
         
     } else {
         console.error('❌ No service data provided to modal');
