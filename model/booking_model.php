@@ -219,39 +219,56 @@ class BookingModel
 
     public function getBookingsByUser($php_fetch, $table, $user_id)
     {
-        // Use a more efficient query with JOINs to get booking details in one query
-        $query = "
-            SELECT 
-                b.bookingid, 
-                b.user_id, 
-                b.total_price, 
-                b.payment_status, 
-                b.booking_status, 
-                b.date_created,
-                COUNT(bd.bookingdetailsid) as service_count,
-                STRING_AGG(s.service_name, ', ') as services,
-                MIN(bd.booking_date) as earliest_date,
-                MAX(bd.booking_date) as latest_date
-            FROM 
-                $table b
-            LEFT JOIN 
-                booking_details bd ON b.bookingid = bd.booking_id
-            LEFT JOIN 
-                services s ON bd.service_id = s.id
-            WHERE 
-                b.user_id = '$user_id'
-            GROUP BY 
-                b.bookingid, b.user_id, b.total_price, b.payment_status, b.booking_status, b.date_created
-            ORDER BY 
-                b.date_created DESC
-        ";
+        try {
+            // Get all bookings for this user (using same approach as getUserRecentServices)
+            $bookings = $php_fetch('booking', '*', ['user_id' => $user_id]);
 
-        $result = $php_fetch($query);
+            if (!$bookings || count($bookings) === 0) {
+                return ['status' => 'nodata'];
+            }
 
-        if ($result && count($result) > 0) {
-            return ['status' => 'success', 'bookings' => $result];
-        } else {
-            return ['status' => 'nodata'];
+            $result = [];
+            foreach ($bookings as $booking) {
+                // Get booking details and services for this booking
+                $booking_details = $php_fetch('booking_details', '*', ['booking_id' => $booking['bookingid']]);
+
+                if ($booking_details) {
+                    $services = [];
+                    $total_amount = 0;
+                    
+                    foreach ($booking_details as $detail) {
+                        $service = $php_fetch('services', 'service_name', ['id' => $detail['service_id']]);
+                        if ($service && count($service) > 0) {
+                            $services[] = $service[0]['service_name'];
+                            $total_amount += $detail['price'] * $detail['quantity'];
+                        }
+                    }
+
+                    $result[] = [
+                        'bookingid' => $booking['bookingid'],
+                        'services' => implode(', ', $services),
+                        'service_count' => count($services),
+                        'status' => $booking['booking_status'],
+                        'booking_date' => $booking['date_created'],
+                        'total_amount' => $total_amount,
+                        'payment_status' => $booking['payment_status'] ?? false
+                    ];
+                }
+            }
+
+            // Sort by date (most recent first)
+            usort($result, function ($a, $b) {
+                return strtotime($b['booking_date']) - strtotime($a['booking_date']);
+            });
+
+            if (count($result) > 0) {
+                return ['status' => 'success', 'bookings' => $result];
+            } else {
+                return ['status' => 'nodata'];
+            }
+        } catch (Exception $e) {
+            error_log("Error in getBookingsByUser: " . $e->getMessage());
+            return ['status' => 'error', 'message' => $e->getMessage()];
         }
     }
 

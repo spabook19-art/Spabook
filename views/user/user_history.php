@@ -106,6 +106,15 @@ include_once '../../helper/user_apps.php' ?>
         text-align: left;
     }
 
+    .booking-info-section,
+    .booking-date-section,
+    .booking-amount-section,
+    .booking-status-section {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
     .service-name {
         font-weight: 600;
         color: #2c3e50;
@@ -290,26 +299,33 @@ include_once '../../helper/user_apps.php' ?>
             }, function(res) {
                 $('#loading-history').hide();
 
-                if (res.status === 'success' && res.data && res.data.length > 0) {
-                    const bookings = res.data;
+                if (res.status === 'success' && res.bookings && res.bookings.length > 0) {
+                    const bookings = res.bookings;
 
                     bookings.forEach(function(booking) {
-                        const statusClass = getStatusClass(booking.booking_status);
+                        const statusClass = getStatusClass(booking.status);
+                        const bookingDate = booking.booking_date;
+                        const serviceCount = booking.service_count || 0;
 
                         const historyItem = $(`
                         <div class="history-item ${statusClass}" data-booking-id="${booking.bookingid}">
                             <div class="history-item-content">
-                                <div>
-                                    <div class="service-name">Services: ${booking.services || 'Multiple Services'}</div>
+                                <div class="booking-info-section">
+                                    <div class="service-name">Services: ${booking.services || 'No services'}</div>
                                     <div class="text-muted small">Booking #${booking.bookingid}</div>
+                                    <div class="text-muted small">${serviceCount} service(s) booked</div>
                                 </div>
-                                <div>
-                                    <div>Quantity: ${booking.total_quantity || 1}</div>
-                                    <div class="text-muted small">Amount: ${peso(booking.total_price || 0)}</div>
+                                <div class="booking-date-section">
+                                    <div class="booking-date"><i class="bi bi-calendar-event me-1"></i>${formatDate(bookingDate)}</div>
+                                    <div class="text-muted small">Created: ${formatDate(booking.booking_date)}</div>
                                 </div>
-                                <div>
-                                    <div class="booking-date">${formatDate(booking.booking_date)}</div>
-                                    <div class="booking-status ${statusClass}">${booking.booking_status}</div>
+                                <div class="booking-amount-section">
+                                    <div class="text-muted small">Total Amount</div>
+                                    <div class="fw-bold">${peso(booking.total_amount || 0)}</div>
+                                    <div class="text-muted small">Payment: ${booking.payment_status ? 'Paid' : 'Pending'}</div>
+                                </div>
+                                <div class="booking-status-section">
+                                    <div class="booking-status ${statusClass}">${booking.status}</div>
                                 </div>
                             </div>
                         </div>
@@ -318,7 +334,7 @@ include_once '../../helper/user_apps.php' ?>
                         $('#history-list').append(historyItem);
 
                         // Load invoice for this booking if it's completed or confirmed
-                        if (booking.booking_status === 'Completed' || booking.booking_status === 'Confirmed') {
+                        if (booking.status === 'Completed' || booking.status === 'Confirmed') {
                             loadInvoice(booking.bookingid, historyItem[0]);
                         }
                     });
