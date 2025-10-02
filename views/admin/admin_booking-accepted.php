@@ -119,6 +119,7 @@ include_once '../../helper/admin_apps.php' ?>
                 <!-- Actions -->
                 <div class="col-auto d-flex gap-2">
                   <button class="btn btn-primary btn-sm px-3" onclick="manageBooking('${row.bookingdetailsid}');"><i class="bi bi-list-check me-1"></i>Services</button>
+                  <button class="btn btn-warning btn-sm px-3" onclick="proceedBooking('${row.bookingdetailsid}');"><i class="bi bi-arrow-right-circle me-1"></i> Proceed</button>
                   <button class="btn btn-success btn-sm px-3" onclick="completeBooking('${row.bookingdetailsid}');"><i class="bi bi-check-circle me-1"></i>Complete</button>
                 </div>
               </div>
@@ -150,7 +151,7 @@ include_once '../../helper/admin_apps.php' ?>
 
   function manageBooking(bookingdetailsid) {
     console.log('🔧 Opening service management for booking:', bookingdetailsid);
-    showGlobalModal('../../modal/admin_modal-booking-services.php');
+    showGlobalModal('../../views/modal/admin_modal-booking-services.php');
   }
 
   // $(document).ready(function() {
