@@ -104,9 +104,18 @@
                                     <i class="fa-solid fa-eye-slash" id="togglePasswordIcon"></i>
                                 </button>
                             </div>
+                            <small class="text-muted">Password must contain:</small>
+                            <ul class="list-unstyled small mb-0" id="password-guidelines">
+                                <li id="pw-length" class="text-danger">❌ At least 8 characters</li>
+                                <li id="pw-upper" class="text-danger">❌ One uppercase letter</li>
+                                <li id="pw-lower" class="text-danger">❌ One lowercase letter</li>
+                                <li id="pw-number" class="text-danger">❌ One number</li>
+                                <li id="pw-special" class="text-danger">❌ One special character (!@#$%^&*)</li>
+                            </ul>
                             <div class="invalid-feedback"></div>
                         </div>
-                        <!-- Confirm Password Field with Show/Hide Button Inside Input -->
+
+                        <!-- Confirm Password -->
                         <div class="form-outline mb-4">
                             <label class="form-label text-secondary" for="signup_password_confirm">Confirm Password</label>
                             <div class="input-group">
@@ -115,6 +124,7 @@
                                     <i class="fa-solid fa-eye-slash" id="togglePasswordConfirmIcon"></i>
                                 </button>
                             </div>
+                            <small id="confirm-message" class="text-danger d-none">❌ Passwords do not match</small>
                             <div class="invalid-feedback"></div>
                         </div>
                         <div class="row mb-3">
@@ -195,7 +205,7 @@
         };
 
         const regionPlaceholders = {
-            "+63": "9123456789", // PH
+            "+63": "912 3456 789", // PH
             "+1": "4151234567", // US/CA
             "+44": "7123456789", // UK
             "+61": "412345678", // AU
@@ -228,7 +238,7 @@
             const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailPattern.test(email)) {
                 $(this).addClass('is-invalid').removeClass('is-valid');
-                $(this).siblings('.invalid-feedback').text('Please enter a valid email address.');
+                $(this).siblings('.invalid-feedback').text('Enter a valid email (e.g. user@example.com).');
             } else {
                 $(this).removeClass('is-invalid').addClass('is-valid');
                 $(this).siblings('.invalid-feedback').text('');
@@ -236,31 +246,41 @@
         });
 
         // Real-time password strength validation
-        $('#signup_password').on('input', function() {
-            const password = $(this).val();
-            if (!isStrongPassword(password)) {
-                $(this).addClass('is-invalid').removeClass('is-valid');
-                $(this).siblings('.invalid-feedback').text(
-                    'Password must be at least 8 characters and include uppercase, lowercase, number, and special character.'
-                );
-            } else {
-                $(this).removeClass('is-invalid').addClass('is-valid');
-                $(this).siblings('.invalid-feedback').text('');
-            }
-            // Also trigger confirm password check
-            // $('#signup_password_confirm').trigger('input');
+        const password = document.getElementById("signup_password");
+        const confirmPassword = document.getElementById("signup_password_confirm");
+        const confirmMessage = document.getElementById("confirm-message");
+
+        password.addEventListener("input", () => {
+            const val = password.value;
+
+            document.getElementById("pw-length").className = val.length >= 8 ? "text-success" : "text-danger";
+            document.getElementById("pw-length").textContent = val.length >= 8 ? "✅ At least 8 characters" : "❌ At least 8 characters";
+
+            document.getElementById("pw-upper").className = /[A-Z]/.test(val) ? "text-success" : "text-danger";
+            document.getElementById("pw-upper").textContent = /[A-Z]/.test(val) ? "✅ One uppercase letter" : "❌ One uppercase letter";
+
+            document.getElementById("pw-lower").className = /[a-z]/.test(val) ? "text-success" : "text-danger";
+            document.getElementById("pw-lower").textContent = /[a-z]/.test(val) ? "✅ One lowercase letter" : "❌ One lowercase letter";
+
+            document.getElementById("pw-number").className = /[0-9]/.test(val) ? "text-success" : "text-danger";
+            document.getElementById("pw-number").textContent = /[0-9]/.test(val) ? "✅ One number" : "❌ One number";
+
+            document.getElementById("pw-special").className = /[!@#$%^&*]/.test(val) ? "text-success" : "text-danger";
+            document.getElementById("pw-special").textContent = /[!@#$%^&*]/.test(val) ? "✅ One special character" : "❌ One special character";
         });
 
-        // Real-time password match validation
-        $('#signup_password_confirm').on('input', function() {
-            const password = $('#signup_password').val();
-            const passwordConfirm = $(this).val();
-            if (password !== passwordConfirm) {
-                $(this).addClass('is-invalid').removeClass('is-valid');
-                $(this).siblings('.invalid-feedback').text('Passwords do not match.');
+        // Confirm password live check
+        confirmPassword.addEventListener("input", () => {
+            if (confirmPassword.value && confirmPassword.value !== password.value) {
+                confirmMessage.classList.remove("d-none");
+                confirmMessage.classList.replace("text-success", "text-danger");
+                confirmMessage.textContent = "❌ Passwords do not match";
+            } else if (confirmPassword.value) {
+                confirmMessage.classList.remove("d-none");
+                confirmMessage.classList.replace("text-danger", "text-success");
+                confirmMessage.textContent = "✅ Passwords match";
             } else {
-                $(this).removeClass('is-invalid').addClass('is-valid');
-                $(this).siblings('.invalid-feedback').text('');
+                confirmMessage.classList.add("d-none");
             }
         });
 
