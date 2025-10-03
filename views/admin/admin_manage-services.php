@@ -176,7 +176,7 @@ include_once '../../helper/admin_apps.php' ?>
     function loadServices() {
         // Show loading state
         $('#loadingServices').show();
-        $('#services_container').hide();
+        $('#services_container').hide(); 
         $('#noServices').hide();
 
         $.ajax({
@@ -273,11 +273,11 @@ include_once '../../helper/admin_apps.php' ?>
     }
 
     function addServices() {
-        showGlobalModal('modal/admin_modal-manage-services.php');
+        showGlobalModal('../modal/admin_modal-manage-services.php');
     }
 
     function editService(id) {
-        showGlobalModal('modal/admin_modal-manage-services.php?serviceid=' + id);
+        showGlobalModal('../modal/admin_modal-manage-services.php?serviceid=' + id);
     }
 
     function deleteService(id) {
@@ -300,11 +300,11 @@ include_once '../../helper/admin_apps.php' ?>
                         serviceid: id
                     },
                     success: function(response) {
-                        if (response === 'success') {
-                            Swal.fire('Deleted!', 'The service has been deleted.', 'success');
+                        if (response.status === 'success' || response === 'success') {
+                            Swal.fire('Deleted!', response.message || 'The service has been deleted.', 'success');
                             loadServices();
                         } else {
-                            Swal.fire('Error!', 'Failed to delete the service.', 'error');
+                            Swal.fire('Error!', response.message || 'Failed to delete the service.', 'error');
                         }
                     }
                 });

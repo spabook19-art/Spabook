@@ -127,37 +127,10 @@
             });
 
             $.ajax({
-                url: '../controller/booking_services_contr.php',
+                url: '../../controller/booking_services_contr.php',
                 type: 'POST',
                 dataType: 'json',
                 data: formData,
-                beforeSend: function() {
-                    Swal.fire({
-                        title: 'Adding Service...',
-                        html: `
-                            <div class="d-flex justify-content-center align-items-center" style="min-width:220px; min-height:220px;">
-                                <img src="../vendor/images/SpaBook.png" alt="Loading..." class="custom-spinner-glow" style="width: 120px; height: 120px;">
-                            </div>
-                            <style>
-                                .custom-spinner-glow {
-                                    animation: spin 1.2s linear infinite, glow 1.2s ease-in-out infinite alternate;
-                                    filter: drop-shadow(0 0 16px #a1623f);
-                                }
-                                @keyframes spin {
-                                    100% { transform: rotate(360deg); }
-                                }
-                                @keyframes glow {
-                                    0% { filter: drop-shadow(0 0 8px #a1623f); }
-                                    100% { filter: drop-shadow(0 0 32px #a1623f); }
-                                }
-                            </style>
-                        `,
-                        showConfirmButton: false,
-                        allowOutsideClick: false,
-                        allowEscapeKey: false,
-                        backdrop: true,
-                    });
-                },
                 success: function(response) {
                     console.log('Raw response:', response);
                     console.log('Response type:', typeof response);
@@ -174,10 +147,11 @@
 
                     console.log('Parsed result:', result);
 
-                    if (result === 'success') {
+                    if (result.status === 'success' || result === 'success') {
                         Swal.fire({
                             icon: 'success',
                             title: 'Service Added Successfully',
+                            text: result.message || 'Service has been added.',
                             showConfirmButton: false,
                             timer: 1500
                         });
@@ -186,17 +160,18 @@
                         if (typeof loadServices === 'function') {
                             loadServices();
                         }
-                    } else if (result === 'exists') {
+                    } else if (result.status === 'error' && result.message && result.message.includes('already exists')) {
                         Swal.fire({
                             icon: 'warning',
                             title: 'Service Already Exists',
-                            text: 'A service with this name already exists. Please choose a different name.'
+                            text: result.message || 'A service with this name already exists. Please choose a different name.'
                         });
                     } else {
                         Swal.fire({
                             icon: 'error',
                             title: 'Error Adding Service',
-                            html: '<strong>Response:</strong> ' + JSON.stringify(result) + '<br><br><small>Check browser console for more details</small>'
+                            text: result.message || 'Failed to add service. Please try again.',
+                            footer: '<small>Check browser console for more details</small>'
                         });
                         console.log('Service addition failed:', result);
                     }
