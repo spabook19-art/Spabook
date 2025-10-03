@@ -149,7 +149,7 @@ function saveTherapist() {
     button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Adding...');
 
     $.ajax({
-        url: '../controller/user_contr.php',
+        url: '../../controller/user_contr.php',
         type: 'POST',
         data: formData,
         processData: false,

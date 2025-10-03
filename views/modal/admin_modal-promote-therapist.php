@@ -1,32 +1,33 @@
 <div class="modal-header">
-  <h5 class="modal-title"><i class="fas fa-user-shield me-2"></i>Promote Users to Administrator</h5>
+  <h5 class="modal-title"><i class="fas fa-spa me-2"></i>Promote Customers to Therapist</h5>
   <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 </div>
 <div class="modal-body">
   <div class="alert alert-info mb-3">
     <small>
       <i class="fas fa-info-circle me-1"></i>
-      Select one or more customers from the list below to promote them to Administrator role.
+      Select one or more <strong>customers</strong> (regular users) from the list below to promote them to Therapist role. 
+      Only users with Customer role are shown here.
     </small>
   </div>
 
   <!-- Search Box -->
   <div class="mb-3">
-    <input type="text" class="form-control" id="searchUsers" placeholder="Search by name or email...">
+    <input type="text" class="form-control" id="searchUsersTherapist" placeholder="Search by name or email...">
   </div>
 
   <!-- Select All Checkbox -->
   <div class="mb-3">
     <div class="form-check">
-      <input class="form-check-input" type="checkbox" id="selectAllUsers">
-      <label class="form-check-label fw-semibold" for="selectAllUsers">
+      <input class="form-check-input" type="checkbox" id="selectAllUsersTherapist">
+      <label class="form-check-label fw-semibold" for="selectAllUsersTherapist">
         Select All
       </label>
     </div>
   </div>
 
   <!-- Loading Indicator -->
-  <div id="loadingUsers" class="text-center py-4">
+  <div id="loadingUsersTherapist" class="text-center py-4">
     <div class="spinner-border text-primary" role="status">
       <span class="visually-hidden">Loading...</span>
     </div>
@@ -34,36 +35,36 @@
   </div>
 
   <!-- Users List -->
-  <div id="usersList" style="display: none; max-height: 400px; overflow-y: auto;">
+  <div id="usersListTherapist" style="display: none; max-height: 400px; overflow-y: auto;">
     <!-- Users will be loaded here dynamically -->
   </div>
 
   <!-- No Users Message -->
-  <div id="noUsersMessage" style="display: none;" class="alert alert-warning">
-    <i class="fas fa-exclamation-triangle me-2"></i>No customer accounts found.
+  <div id="noUsersMessageTherapist" style="display: none;" class="alert alert-warning">
+    <i class="fas fa-exclamation-triangle me-2"></i>No customer accounts found. All users are already Admins or Therapists.
   </div>
 
   <!-- Selected Count -->
   <div class="mt-3 text-end">
-    <span class="badge bg-secondary" id="selectedCount">0 selected</span>
+    <span class="badge bg-secondary" id="selectedCountTherapist">0 selected</span>
   </div>
 </div>
 <div class="modal-footer">
   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-  <button type="button" id="promoteAdminBtn" class="btn btn-danger" onclick="promoteToAdmin()" disabled>
-    <i class="fas fa-user-shield me-1"></i>Promote to Administrator
+  <button type="button" id="promoteTherapistBtn" class="btn btn-success" onclick="promoteToTherapist()" disabled>
+    <i class="fas fa-spa me-1"></i>Promote to Therapist
   </button>
 </div>
 
 <script>
-let allUsers = [];
+let allUsersTherapist = [];
 
 // Load users when modal opens
 $(document).ready(function() {
-  loadCustomerUsers();
+  loadCustomerUsersForTherapist();
 });
 
-function loadCustomerUsers() {
+function loadCustomerUsersForTherapist() {
   $.ajax({
     url: '../../controller/user_contr.php',
     type: 'POST',
@@ -73,24 +74,24 @@ function loadCustomerUsers() {
       role: 'User'
     },
     success: function(response) {
-      $('#loadingUsers').hide();
+      $('#loadingUsersTherapist').hide();
       
       if (response.data && response.data.length > 0) {
-        allUsers = response.data;
-        displayUsers(allUsers);
-        $('#usersList').show();
+        allUsersTherapist = response.data;
+        displayUsersTherapist(allUsersTherapist);
+        $('#usersListTherapist').show();
       } else {
-        $('#noUsersMessage').show();
+        $('#noUsersMessageTherapist').show();
       }
     },
     error: function() {
-      $('#loadingUsers').hide();
-      $('#noUsersMessage').html('<i class="fas fa-exclamation-triangle me-2"></i>Failed to load customers.').show();
+      $('#loadingUsersTherapist').hide();
+      $('#noUsersMessageTherapist').html('<i class="fas fa-exclamation-triangle me-2"></i>Failed to load customers.').show();
     }
   });
 }
 
-function displayUsers(users) {
+function displayUsersTherapist(users) {
   let html = '<div class="list-group">';
   
   users.forEach(function(user) {
@@ -100,8 +101,8 @@ function displayUsers(users) {
     const joinDate = new Date(user.created_at).toLocaleDateString();
     
     html += `
-      <label class="list-group-item list-group-item-action d-flex align-items-center user-item" style="cursor: pointer;">
-        <input class="form-check-input me-3 user-checkbox" type="checkbox" value="${user.user_id}" data-name="${user.full_name}">
+      <label class="list-group-item list-group-item-action d-flex align-items-center user-item-therapist" style="cursor: pointer;">
+        <input class="form-check-input me-3 user-checkbox-therapist" type="checkbox" value="${user.user_id}" data-name="${user.full_name}">
         <img src="${avatar}" class="rounded-circle me-3" width="50" height="50" style="object-fit: cover;">
         <div class="flex-grow-1">
           <h6 class="mb-1">${user.full_name}</h6>
@@ -118,47 +119,47 @@ function displayUsers(users) {
   });
   
   html += '</div>';
-  $('#usersList').html(html);
+  $('#usersListTherapist').html(html);
   
   // Update count when checkboxes change
-  $('.user-checkbox').on('change', updateSelectedCount);
+  $('.user-checkbox-therapist').on('change', updateSelectedCountTherapist);
 }
 
-function updateSelectedCount() {
-  const selectedCount = $('.user-checkbox:checked').length;
-  $('#selectedCount').text(selectedCount + ' selected');
-  $('#promoteAdminBtn').prop('disabled', selectedCount === 0);
+function updateSelectedCountTherapist() {
+  const selectedCount = $('.user-checkbox-therapist:checked').length;
+  $('#selectedCountTherapist').text(selectedCount + ' selected');
+  $('#promoteTherapistBtn').prop('disabled', selectedCount === 0);
 }
 
 // Select All functionality
-$('#selectAllUsers').on('change', function() {
+$('#selectAllUsersTherapist').on('change', function() {
   const isChecked = $(this).is(':checked');
-  $('.user-checkbox:visible').prop('checked', isChecked);
-  updateSelectedCount();
+  $('.user-checkbox-therapist:visible').prop('checked', isChecked);
+  updateSelectedCountTherapist();
 });
 
 // Search functionality
-$('#searchUsers').on('keyup', function() {
+$('#searchUsersTherapist').on('keyup', function() {
   const searchTerm = $(this).val().toLowerCase();
   
   if (searchTerm === '') {
-    displayUsers(allUsers);
+    displayUsersTherapist(allUsersTherapist);
   } else {
-    const filteredUsers = allUsers.filter(function(user) {
+    const filteredUsers = allUsersTherapist.filter(function(user) {
       return user.full_name.toLowerCase().includes(searchTerm) || 
              (user.email && user.email.toLowerCase().includes(searchTerm));
     });
-    displayUsers(filteredUsers);
+    displayUsersTherapist(filteredUsers);
   }
   
   // Reset select all checkbox
-  $('#selectAllUsers').prop('checked', false);
-  updateSelectedCount();
+  $('#selectAllUsersTherapist').prop('checked', false);
+  updateSelectedCountTherapist();
 });
 
-function promoteToAdmin() {
+function promoteToTherapist() {
   const selectedUsers = [];
-  $('.user-checkbox:checked').each(function() {
+  $('.user-checkbox-therapist:checked').each(function() {
     selectedUsers.push({
       id: $(this).val(),
       name: $(this).data('name')
@@ -172,27 +173,27 @@ function promoteToAdmin() {
   
   const userNames = selectedUsers.map(u => u.name).join(', ');
   const confirmMessage = selectedUsers.length === 1 
-    ? `Are you sure you want to promote "${userNames}" to Administrator?`
-    : `Are you sure you want to promote ${selectedUsers.length} users to Administrator?`;
+    ? `Are you sure you want to promote "${userNames}" to Therapist?`
+    : `Are you sure you want to promote ${selectedUsers.length} users to Therapist?`;
   
   Swal.fire({
     title: 'Confirm Promotion',
     html: confirmMessage,
     icon: 'question',
     showCancelButton: true,
-    confirmButtonColor: '#dc3545',
+    confirmButtonColor: '#198754',
     cancelButtonColor: '#6c757d',
     confirmButtonText: 'Yes, promote them!',
     cancelButtonText: 'Cancel'
   }).then((result) => {
     if (result.isConfirmed) {
-      promoteUsersToAdminRole(selectedUsers);
+      promoteUsersToTherapistRole(selectedUsers);
     }
   });
 }
 
-function promoteUsersToAdminRole(users) {
-  const btn = $('#promoteAdminBtn');
+function promoteUsersToTherapistRole(users) {
+  const btn = $('#promoteTherapistBtn');
   btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Processing...');
   
   let completed = 0;
@@ -209,7 +210,7 @@ function promoteUsersToAdminRole(users) {
       data: {
         action: 'update_role',
         id: user.id,
-        role: 'Admin'
+        role: 'Therapist'
       },
       success: function(response) {
         completed++;
@@ -230,13 +231,13 @@ function promoteUsersToAdminRole(users) {
   
   function checkCompletion() {
     if (completed === total) {
-      btn.prop('disabled', false).html('<i class="fas fa-user-shield me-1"></i>Promote to Administrator');
+      btn.prop('disabled', false).html('<i class="fas fa-spa me-1"></i>Promote to Therapist');
       
       let message = '';
       if (successful === total) {
         message = successful === 1 
-          ? '1 user has been successfully promoted to Administrator!' 
-          : `${successful} users have been successfully promoted to Administrator!`;
+          ? '1 user has been successfully promoted to Therapist!' 
+          : `${successful} users have been successfully promoted to Therapist!`;
         
         Swal.fire({
           icon: 'success',
@@ -249,7 +250,7 @@ function promoteUsersToAdminRole(users) {
           // Refresh the user tables
           if (typeof loadManageUser === 'function') {
             loadManageUser('User', 'userTable');
-            loadManageUser('Admin', 'adminTable');
+            loadManageUser('Therapist', 'therapistTable');
           }
           if (typeof loadCounts === 'function') {
             loadCounts();
@@ -262,16 +263,17 @@ function promoteUsersToAdminRole(users) {
           text: 'Failed to promote users. Please try again.'
         });
       } else {
-        message = `Promotion completed: ${successful} successful, ${failed} failed.`;
+        message = `${successful} user(s) promoted successfully, ${failed} failed.`;
         Swal.fire({
           icon: 'warning',
-          title: 'Partially Successful',
+          title: 'Partial Success',
           text: message
         }).then(() => {
           $('#globalModal').modal('hide');
+          // Refresh the user tables
           if (typeof loadManageUser === 'function') {
             loadManageUser('User', 'userTable');
-            loadManageUser('Admin', 'adminTable');
+            loadManageUser('Therapist', 'therapistTable');
           }
           if (typeof loadCounts === 'function') {
             loadCounts();
@@ -284,13 +286,24 @@ function promoteUsersToAdminRole(users) {
 </script>
 
 <style>
-.form-label { font-weight: 600; }
-.user-item:hover {
+.user-item-therapist {
+  transition: background-color 0.2s;
+}
+
+.user-item-therapist:hover {
   background-color: #f8f9fa;
 }
-.user-checkbox {
+
+.user-checkbox-therapist {
   cursor: pointer;
-  width: 20px;
-  height: 20px;
+}
+
+.list-group-item {
+  border-left: 3px solid transparent;
+}
+
+.list-group-item:has(.user-checkbox-therapist:checked) {
+  border-left-color: #198754;
+  background-color: #f0f9f4;
 }
 </style>
