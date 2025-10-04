@@ -284,12 +284,20 @@ include_once '../../helper/admin_apps.php' ?>
                              <i class="fas fa-trash"></i>
                          </button>
                      `;
+            if (role === 'Admin') {
+              buttonAction += ` <button class="btn btn-outline-warning" onclick="demoteAdmin('${btoa(row.user_id)}', '${row.full_name}')" title="Demote to Customer">
+                            <i class="fas fa-arrow-down"></i>
+                        </button>`;
+            }
             if (role === 'Therapist') {
               buttonAction += ` <button class="btn btn-outline-success" onclick="manageTherapistSchedule('${btoa(row.user_id)}')" title="Manage Schedule">
                             <i class="fas fa-calendar-alt"></i>
                         </button>
                         <button class="btn btn-outline-warning" onclick="manageTherapistServices('${btoa(row.user_id)}')" title="Manage Services">
                             <i class="fas fa-spa"></i>
+                        </button>
+                        <button class="btn btn-outline-danger" onclick="demoteTherapist('${btoa(row.user_id)}', '${row.full_name}')" title="Demote to Customer">
+                            <i class="fas fa-arrow-down"></i>
                         </button>`;
             }
             buttonAction += `</div>`;
@@ -940,27 +948,135 @@ include_once '../../helper/admin_apps.php' ?>
   //   // Loading will be cleared by render functions
   // }
 
-  // // Action Functions
-  // function getModalUrl(filename) {
-  //   const path = window.location.pathname;
-  //   if (path.includes('/views/admin/')) return '../modal/' + filename; // when loaded directly under /views/admin/
-  //   if (path.includes('/views/')) return './modal/' + filename; // when embedded under /views/
-  //   return 'views/modal/' + filename; // fallback
-  // }
+  // Action Functions
+  function getModalUrl(filename) {
+    const path = window.location.pathname;
+    if (path.includes('/views/admin/')) return '../modal/' + filename; // when loaded directly under /views/admin/
+    if (path.includes('/views/')) return './modal/' + filename; // when embedded under /views/
+    return 'views/modal/' + filename; // fallback
+  }
 
-  // function addNewAdmin() {
-  //   showGlobalModal(getModalUrl('admin_modal-add-user.php'), {
-  //     role: 'Admin',
-  //     title: 'Add New Administrator'
-  //   });
-  // }
+  function addNewAdmin() {
+    showGlobalModal(getModalUrl('admin_modal-add-user.php'), {
+      role: 'Admin',
+      title: 'Add New Administrator'
+    });
+  }
 
-  // function addNewTherapist() {
-  //   showGlobalModal(getModalUrl('admin_modal-add-therapist.php'), {
-  //     role: 'Therapist',
-  //     title: 'Add New Therapist'
-  //   });
-  // }
+  function demoteAdmin(userId, userName) {
+    Swal.fire({
+      title: 'Demote Administrator?',
+      html: `Are you sure you want to demote <strong>${userName}</strong> to Customer role?<br><br>They will lose all administrator privileges.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Yes, Demote',
+      cancelButtonText: 'Cancel'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        $.ajax({
+          url: '../../controller/user_contr.php',
+          type: 'POST',
+          dataType: 'json',
+          data: {
+            action: 'update_role',
+            id: atob(userId),
+            role: 'User'
+          },
+          success: function(response) {
+            if (response && response.status === 'success') {
+              Swal.fire({
+                icon: 'success',
+                title: 'Demoted!',
+                text: `${userName} has been demoted to Customer role.`,
+                timer: 2000,
+                showConfirmButton: false
+              }).then(() => {
+                // Refresh both Admin and User tables
+                loadManageUser('Admin', 'adminTable');
+                loadManageUser('User', 'userTable');
+              });
+            } else {
+              Swal.fire({
+                icon: 'error',
+                title: 'Failed',
+                text: response.message || 'Failed to demote administrator'
+              });
+            }
+          },
+          error: function() {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: 'An error occurred while demoting the administrator'
+            });
+          }
+        });
+      }
+    });
+  }
+
+  function demoteTherapist(userId, userName) {
+    Swal.fire({
+      title: 'Demote Therapist?',
+      html: `Are you sure you want to demote <strong>${userName}</strong> to Customer role?<br><br>They will lose therapist privileges and won't be available for bookings.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Yes, Demote',
+      cancelButtonText: 'Cancel'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        $.ajax({
+          url: '../../controller/user_contr.php',
+          type: 'POST',
+          dataType: 'json',
+          data: {
+            action: 'update_role',
+            id: atob(userId),
+            role: 'User'
+          },
+          success: function(response) {
+            if (response && response.status === 'success') {
+              Swal.fire({
+                icon: 'success',
+                title: 'Demoted!',
+                text: `${userName} has been demoted to Customer role.`,
+                timer: 2000,
+                showConfirmButton: false
+              }).then(() => {
+                // Refresh both Therapist and User tables
+                loadManageUser('Therapist', 'therapistTable');
+                loadManageUser('User', 'userTable');
+              });
+            } else {
+              Swal.fire({
+                icon: 'error',
+                title: 'Failed',
+                text: response.message || 'Failed to demote therapist'
+              });
+            }
+          },
+          error: function() {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: 'An error occurred while demoting the therapist'
+            });
+          }
+        });
+      }
+    });
+  }
+
+  function addNewTherapist() {
+    showGlobalModal(getModalUrl('admin_modal-promote-therapist.php'), {
+      role: 'Therapist',
+      title: 'Promote to Therapist'
+    });
+  }
 
   // function editUser(userId, UserRole) {
   //   // const user = regularUsers.find(u => u.user_id === userId);
