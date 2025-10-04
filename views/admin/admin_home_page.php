@@ -126,7 +126,7 @@
                                 <div class="card-header d-flex justify-content-between align-items-center">
                                     <h5 class="mb-0">Total Bookings</h5>
                                 </div>
-                                <div class="card-body" style="max-height: 45vh; overflow-y: auto;">
+                                <div class="card-body">
                                     <div class="table-responsive">
                                         <table class="table table-hover mb-0" id="totalBookingsTable">
                                             <thead class="table-light">
