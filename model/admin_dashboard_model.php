@@ -216,7 +216,7 @@ class Admin
         ]);
     }
 
-        public function loadBookingRequests($php_fetch)
+        public function loadBookingRequests($php_fetch,$status)
     {
         $result = [];
         $filter = $status === 'Request' ? 'Pending' : ['Confirmed', 'On-Going'];
