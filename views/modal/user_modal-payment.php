@@ -114,8 +114,8 @@ function displayFinalBookingSummary() {
         
         // Format therapist assignments
         let therapistAssignments = '';
-        if (service.selectedTherapists && service.selectedTherapists.length > 0) {
-            service.selectedTherapists.forEach(assignment => {
+        if (service.therapists && service.therapists.length > 0) {
+            service.therapists.forEach(assignment => {
                 therapistAssignments += `
                     <div class="text-success small">
                         <i class="bi bi-person-check me-1"></i>Person ${assignment.person}: ${assignment.therapistName}
@@ -193,12 +193,16 @@ function submitBookingWithPayment() {
             price: service.price,
             selectedDate: service.selectedDate,
             selectedTime: service.selectedTime,
-            therapists: service.selectedTherapists || []
+            therapists: service.therapists || []
         }));
+        
+        // Get patient_id from sessionStorage if available (for stroke therapy bookings)
+        const patientId = sessionStorage.getItem('temp_patient_id');
         
         const submissionData = {
             action: 'create_booking',
             user_id: sessionStorage.getItem('user_id'),
+            patient_id: patientId || null, // Include patient_id if available
             total_price: bookingData.totalAmount,
             payment_img: receiptBase64,
             services: JSON.stringify(servicesForSubmission)
@@ -252,6 +256,9 @@ function submitBookingWithPayment() {
                     
                     // Clear pending booking data
                     window.pendingBookingData = null;
+                    
+                    // Clear temporary patient_id from session storage
+                    sessionStorage.removeItem('temp_patient_id');
                     
                     // Close modal
                     $('#globalModal').modal('hide');

@@ -1,4 +1,9 @@
 <?php
+// Enable error reporting
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 // Run the test
 if (isset($_POST['action'])) {
     date_default_timezone_set('Asia/Manila');
@@ -9,9 +14,16 @@ if (isset($_POST['action'])) {
     $current_date = date('Y-m-d');
     $timestamp = new DateTime('now');
     $current_datetimestamp = $timestamp->format('Y-m-d H:i:s');
+    
+    error_log('=== BOOKING_SERVICES_CONTR ===');
+    error_log('Action: ' . $action);
+    
     switch ($action) {
         case 'fetch_services':
-            echo $bookingServices->fetchServices($php_fetch);
+            error_log('Fetching services...');
+            $result = $bookingServices->fetchServices($php_fetch);
+            error_log('Services fetch result: ' . substr($result, 0, 200)); // Log first 200 chars
+            echo $result;
             break;
 
         case 'add_service':

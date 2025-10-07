@@ -5,27 +5,43 @@ class BookingServices
     //! ============================================================ SERVICES SECTION ============================================================
     public function fetchServices($php_fetch)
     {
-        $item_data = array();
-        $service_data = $php_fetch('services', 'id,service_name,commission, description, price, per_minute, service_picture', ['order' => 'service_name.asc']);
-        if (!empty($service_data)) {
-            foreach ($service_data as $row) {
-                // Optimize image data - you could implement image compression here
-                $optimized_image = $this->optimizeImageData($row['service_picture']);
-
-                $item_data[] = array(
-                    'id' => $row['id'], // Use 'id' to match frontend expectations
-                    'service_name' => $row['service_name'],
-                    'description' => $row['description'],
-                    'price' => $row['price'],
-                    'per_minute' => $row['per_minute'],
-                    'service_picture' => $optimized_image,
-                    'commission' => $row['commission']
-                );
+        try {
+            $item_data = array();
+            $service_data = $php_fetch('services', 'id,service_name,commission, description, price, per_minute, service_picture', ['order' => 'service_name.asc']);
+            
+            error_log('Raw service_data from database: ' . print_r($service_data, true));
+            
+            // Check for database errors
+            if (is_array($service_data) && isset($service_data['error'])) {
+                error_log('Database error fetching services: ' . json_encode($service_data['error']));
+                return json_encode(['status' => 'error', 'message' => 'Database error fetching services']);
             }
+            
+            if (!empty($service_data) && is_array($service_data)) {
+                foreach ($service_data as $row) {
+                    // Optimize image data - you could implement image compression here
+                    $optimized_image = $this->optimizeImageData($row['service_picture']);
 
-            return json_encode($item_data);
-        } else {
-            return json_encode('nodata');
+                    $item_data[] = array(
+                        'id' => $row['id'], // Use 'id' to match frontend expectations
+                        'service_name' => $row['service_name'],
+                        'description' => $row['description'],
+                        'price' => $row['price'],
+                        'per_minute' => $row['per_minute'],
+                        'service_picture' => $optimized_image,
+                        'commission' => $row['commission']
+                    );
+                }
+
+                error_log('Successfully fetched ' . count($item_data) . ' services');
+                return json_encode($item_data);
+            } else {
+                error_log('No services found in database');
+                return json_encode('nodata');
+            }
+        } catch (Exception $e) {
+            error_log('Exception in fetchServices: ' . $e->getMessage());
+            return json_encode(['status' => 'error', 'message' => 'Server error: ' . $e->getMessage()]);
         }
     }
 

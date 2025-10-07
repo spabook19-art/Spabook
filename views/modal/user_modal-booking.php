@@ -13,43 +13,21 @@
   </div>
 
   <!-- Number of People -->
-  <div class="mb-3">
+  <div class="mb-3" id="numPeopleContainer">
     <label for="numPeople" class="form-label fw-semibold">Number of People:</label>
     <input type="number" class="form-control" id="numPeople" min="1" max="10" value="1">
     <div class="form-text">Maximum 10 people per booking</div>
-  </div>
-
-  <!-- Therapist Selection -->
-  <div class="mb-3">
-    <label class="form-label fw-semibold">
-      <i class="bi bi-person-fill me-1"></i>Select Therapist(s):
-    </label>
-    <div id="therapist-loading" class="text-center py-3 d-none">
-      <div class="spinner-border spinner-border-sm text-primary" role="status">
-        <span class="visually-hidden">Loading...</span>
-      </div>
-      <div class="mt-2 text-muted">Loading therapists...</div>
-    </div>
-    <div id="therapist-selection-container">
-      <!-- Therapist options will be populated here -->
-    </div>
-    <div id="no-therapists" class="alert alert-info d-none">
-      <i class="bi bi-info-circle me-1"></i>
-      No therapists available for this service.
-    </div>
   </div>
 </div>
 
 <div class="modal-footer">
   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-  <button type="button" class="btn btn-primary" id="confirmServiceBtn" disabled>Add</button>
+  <button type="button" class="btn btn-primary" id="confirmServiceBtn">Add</button>
 </div>
 
 <script>
-// Global variables for modal - using var to avoid redeclaration errors
+// Global variables for modal
 var selectedServiceData = {};
-var availableTherapists = [];
-var selectedTherapists = [];
 
 // Initialize modal when document is ready
 $(document).ready(function() {
@@ -72,203 +50,138 @@ function initializeBookingModal() {
         selectedServiceData = serviceData;
         
         $('#selected-service-name').text(serviceData.name || 'Unknown Service');
-        $('#selected-service-description').text(serviceData.description || 'No description available');
         $('#selected-service-price').text('₱' + (serviceData.price || 0)).attr('data-price', serviceData.price || 0);
+        $('#selected-service-id').val(serviceData.id);
         
-        if (serviceData.image) {
-            $('#selected-service-image').attr('src', serviceData.image);
-        }
-        
-        // Only load therapists for stroke treatment services
+        // Check if stroke treatment to set number of people to 1
         const serviceName = (serviceData.name || '').toLowerCase();
-        const isStrokeTreatment = serviceName.includes('stroke') || serviceName.includes('special treatment for stroke');
+        const isStrokeTreatment = serviceName.includes('stroke');
         
         if (isStrokeTreatment) {
-            console.log('🔄 Loading therapists for stroke treatment service ID:', serviceData.id);
-            // Show therapist selection section
-            $('.mb-3').has('#therapist-selection-container').show();
-            loadTherapists(serviceData.id);
+            console.log('🏥 Stroke treatment detected - setting to 1 person only');
+            $('#numPeopleContainer').hide();
+            $('#numPeople').val(1);
+            $('#selected-service-price').text('₱' + (serviceData.price || 0));
         } else {
-            console.log('ℹ️ Therapist selection not required - auto-assignment will be used');
-            // Hide therapist selection section for non-stroke services
-            $('.mb-3').has('#therapist-selection-container').hide();
-            $('#confirmServiceBtn').prop('disabled', false);
+            console.log('ℹ️ Regular service - allowing multiple people');
+            $('#numPeopleContainer').show();
         }
         
     } else {
         console.error('❌ No service data provided to modal');
-        // Still enable the confirm button for testing
-        $('#confirmServiceBtn').prop('disabled', false);
     }
 }
 
-// Function to load therapists for the selected service
-function loadTherapists(serviceId) {
-    $('#therapist-loading').removeClass('d-none');
-    $('#therapist-selection-container').html('');
-    $('#no-therapists').addClass('d-none');
-    $('#confirmServiceBtn').prop('disabled', true);
+// Event handler for number of people change (remove old handlers first)
+$('#numPeople').off('input change').on('input change', function() {
+    const numPeople = parseInt($(this).val());
+    
+    // Update price display (only if visible)
+    if ($('#numPeopleContainer').is(':visible')) {
+        const basePrice = parseFloat($('#selected-service-price').data('price'));
+        const totalPrice = basePrice * numPeople;
+        $('#selected-service-price').text(`₱${basePrice} × ${numPeople} = ₱${totalPrice}`);
+    }
+});
 
-    $.ajax({
-        url: '../../controller/therapist_contr.php',
-        type: 'POST',
-        dataType: 'json',
-        data: {
-            action: 'get_therapists_by_service',
-            service_id: serviceId
-        },
-        success: function(result) {
-            $('#therapist-loading').addClass('d-none');
-            
-            if (result === 'nodata' || !result || result.length === 0) {
-                $('#no-therapists').removeClass('d-none');
-                // Allow booking without therapist selection
-                $('#confirmServiceBtn').prop('disabled', false);
-                availableTherapists = [];
-            } else {
-                availableTherapists = result;
-                generateTherapistSelection();
-                $('#confirmServiceBtn').prop('disabled', false);
-            }
-        },
-        error: function(xhr, status, error) {
-            console.error('❌ Therapist loading error:', {xhr, status, error});
-            console.error('❌ Response text:', xhr.responseText);
-            $('#therapist-loading').addClass('d-none');
-            $('#therapist-selection-container').html(`
-                <div class="alert alert-danger">
-                    <i class="bi bi-exclamation-circle me-1"></i>
-                    Failed to load therapists. You can still proceed without therapist selection.
-                    <br><small class="text-muted">Error: ${error} | Status: ${status}</small>
-                </div>
-            `);
-            $('#confirmServiceBtn').prop('disabled', false);
-            availableTherapists = [];
-        }
-    });
-}
-
-// Function to generate therapist selection UI based on number of people
-function generateTherapistSelection() {
+// Handle confirm button click (remove old handlers first)
+$('#confirmServiceBtn').off('click').on('click', function() {
     const numPeople = parseInt($('#numPeople').val());
-    let html = '';
-
-    if (availableTherapists.length === 0) {
+    
+    if (numPeople < 1 || numPeople > 10) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Invalid Number',
+            text: 'Please enter a valid number of people (1-10).',
+        });
         return;
     }
+    
+    // Add service to cart
+    addServiceToCart(selectedServiceData, numPeople);
+});
 
-    for (let i = 1; i <= numPeople; i++) {
-        html += `
-            <div class="therapist-person-selection mb-3 border rounded p-3" data-person="${i}">
-                <h6 class="mb-2">
-                    <i class="bi bi-person me-1"></i>Person ${i} - Therapist Selection
-                </h6>
-                <div class="row">
-                    ${availableTherapists.map(therapist => `
-                        <div class="col-md-6 mb-2">
-                            <div class="form-check therapist-option">
-                                <input class="form-check-input therapist-radio" 
-                                       type="radio" 
-                                       name="therapist-person-${i}" 
-                                       value="${therapist.therapistid}" 
-                                       id="therapist-${therapist.therapistid}-person-${i}">
-                                <label class="form-check-label w-100" for="therapist-${therapist.therapistid}-person-${i}">
-                                    <div class="therapist-card p-2 border rounded">
-                                        <div class="fw-semibold">${therapist.therapist_name}</div>
-                                        <div class="text-muted small">${therapist.therapist_desc || 'Professional therapist'}</div>
-                                    </div>
-                                </label>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-                <div class="mt-2">
-                    <small class="text-muted">
-                        <i class="bi bi-info-circle me-1"></i>
-                        Select a therapist for person ${i} (optional)
-                    </small>
-                </div>
-            </div>
-        `;
-    }
-
-    $('#therapist-selection-container').html(html);
-
-    // Add click handler for therapist cards
-    $('.therapist-card').on('click', function() {
-        $(this).closest('.therapist-option').find('.therapist-radio').prop('checked', true);
-        updateSelectedTherapists();
-    });
-
-    // Add change handler for radio buttons
-    $('.therapist-radio').on('change', function() {
-        updateSelectedTherapists();
-    });
-}
-
-// Function to update selected therapists array
-function updateSelectedTherapists() {
-    selectedTherapists = [];
-    $('.therapist-radio:checked').each(function() {
-        const therapistId = $(this).val();
-        const personIndex = $(this).attr('name').split('-')[2];
-        const therapist = availableTherapists.find(t => t.therapistid == therapistId);
-        
-        if (therapist) {
-            selectedTherapists.push({
-                person: parseInt(personIndex),
-                therapistId: therapistId,
-                therapistName: therapist.therapist_name,
-                therapistDesc: therapist.therapist_desc
-            });
-        }
-    });
-
-    console.log('Selected therapists:', selectedTherapists);
-}
-
-// Event handler for number of people change
-$('#numPeople').on('input change', function() {
-    const numPeople = parseInt($(this).val());
-    if (numPeople > 0 && availableTherapists.length > 0) {
-        generateTherapistSelection();
+// Add service to cart function
+function addServiceToCart(serviceData, numPeople) {
+    console.log('🛒 Adding to cart:', serviceData, 'for', numPeople, 'people');
+    
+    // Get patient ID if available (for stroke services)
+    const patientId = sessionStorage.getItem('temp_patient_id');
+    
+    // Initialize cart if needed
+    if (!window.serviceCart) {
+        window.serviceCart = [];
     }
     
-    // Update price display
-    const basePrice = parseFloat($('#selected-service-price').data('price'));
-    const totalPrice = basePrice * numPeople;
-    $('#selected-service-price').text(`₱${basePrice} × ${numPeople} = ₱${totalPrice}`);
-});
+    // Check for duplicates - allow multiple of the same service
+    // Only check if trying to add exact same configuration
+    const existingIndex = window.serviceCart.findIndex(s => 
+        s.id === serviceData.id && 
+        s.people === numPeople &&
+        s.patient_id === (patientId || null)
+    );
+    
+    if (existingIndex >= 0) {
+        Swal.fire({
+            icon: 'info',
+            title: 'Service Already Added',
+            text: 'This exact service configuration is already in your cart.',
+        });
+        return;
+    }
+    
+    // Create service object with correct property names
+    const service = {
+        id: serviceData.id,
+        name: serviceData.name,
+        price: parseFloat(serviceData.price),
+        description: serviceData.description,
+        image: serviceData.image,
+        people: numPeople,
+        patient_id: patientId || null
+    };
+    
+    // Add to global cart
+    window.serviceCart.push(service);
+    
+    console.log('✅ Service added to cart:', service);
+    console.log('🛒 Current cart:', window.serviceCart);
+    
+    // Save cart to LocalStorage if function exists
+    if (typeof window.saveCartToStorage === 'function') {
+        window.saveCartToStorage();
+    }
+    
+    // Update checkout badge if function exists
+    if (typeof window.updateCheckoutBadge === 'function') {
+        window.updateCheckoutBadge();
+    }
+    
+    // Show success message and close modal
+    Swal.fire({
+        icon: 'success',
+        title: 'Added to Cart!',
+        text: `${serviceData.name} for ${numPeople} ${numPeople === 1 ? 'person' : 'people'} added to cart.`,
+        timer: 1500,
+        showConfirmButton: false
+    }).then(() => {
+        $('#globalModal').modal('hide');
+    });
+}
 </script>
 
 <style>
-.therapist-option {
-    transition: all 0.2s ease-in-out;
-}
-
-.therapist-card {
-    transition: all 0.2s ease-in-out;
-    cursor: pointer;
-}
-
-.therapist-card:hover {
-    background-color: #f8f9fa;
-    border-color: #007bff !important;
-}
-
-.therapist-radio:checked + .form-check-label .therapist-card {
-    background-color: #e3f2fd;
-    border-color: #007bff !important;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-}
-
-.therapist-person-selection {
-    background-color: #fafafa;
-    border: 1px solid #e9ecef !important;
-}
-
 .modal-body {
     max-height: 70vh;
     overflow-y: auto;
+}
+
+#selected-service-name {
+    color: #0d6efd;
+}
+
+.form-control:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
 }
 </style>

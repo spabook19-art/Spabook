@@ -198,20 +198,28 @@ class BookingModel
 
         $insert = $php_insert($table, $data);
 
-        // Debug output (disabled in production)
-        // file_put_contents('debug_insert.txt', print_r($insert, true));
+        // Debug output
+        file_put_contents('c:/xampp/htdocs/SpaBook_2/debug_insert.txt', print_r($insert, true));
+        error_log('createBooking insert result: ' . print_r($insert, true));
 
         // Check if $insert is an array or not
         if (!is_array($insert)) {
-            // file_put_contents('debug_error.txt', "Insert returned non-array:\n" . print_r($insert, true));
-            return ['status' => 'error', 'message' => 'Insert failed: non-array result'];
+            $errorMsg = "Insert returned non-array: " . print_r($insert, true);
+            file_put_contents('c:/xampp/htdocs/SpaBook_2/debug_error.txt', $errorMsg);
+            error_log('createBooking ERROR: ' . $errorMsg);
+            return ['status' => 'error', 'message' => 'Insert failed: non-array result', 'debug' => $insert];
         }
 
         if (isset($insert['error'])) {
-            return ['status' => 'error', 'message' => 'Insert failed with error'];
+            $errorDetails = $insert['response'] ?? $insert['error'] ?? 'Unknown error';
+            $errorMsg = is_string($errorDetails) ? $errorDetails : json_encode($errorDetails);
+            error_log('createBooking ERROR: ' . $errorMsg);
+            file_put_contents('c:/xampp/htdocs/SpaBook_2/debug_error.txt', "Insert error:\n" . print_r($insert, true));
+            return ['status' => 'error', 'message' => 'Database error: ' . $errorMsg, 'debug' => $insert];
         }
 
         // Return the array directly, not JSON encoded
+        error_log('createBooking SUCCESS: Booking created with ID ' . ($insert[0]['bookingid'] ?? 'unknown'));
         return $insert[0] ?? $insert; // Supabase returns array of inserted records
     }
 
@@ -297,8 +305,47 @@ class BookingModel
 
     public function addBookingDetail($php_insert, $table, $data)
     {
-        $insert = $php_insert($table, $data);
-        return isset($insert['error']) ? json_encode(['status' => 'error']) : json_encode(['status' => 'success']);
+        // Use service role for booking_details inserts to avoid sequence permission errors
+        global $projectUrl, $serviceRoleKey;
+        
+        $url = "https://rijeyetpxumyxzggihre.supabase.co/rest/v1/$table";
+        $headers = [
+            "apikey: $serviceRoleKey",
+            "Authorization: Bearer $serviceRoleKey",
+            "Content-Type: application/json",
+            "Prefer: return=representation"
+        ];
+        
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+        
+        if ($curlError) {
+            error_log('addBookingDetail cURL Error: ' . $curlError);
+            return json_encode(['status' => 'error', 'message' => 'cURL Error: ' . $curlError, 'data' => $data]);
+        }
+        
+        if ($httpCode >= 400) {
+            error_log('addBookingDetail HTTP Error ' . $httpCode . ': ' . $response);
+            return json_encode(['status' => 'error', 'message' => 'HTTP Error: ' . $httpCode, 'response' => $response, 'data' => $data]);
+        }
+        
+        $insert = json_decode($response, true);
+        
+        if ($insert === null && json_last_error() !== JSON_ERROR_NONE) {
+            error_log('addBookingDetail JSON Parse Error: ' . json_last_error_msg());
+            return json_encode(['status' => 'error', 'message' => 'JSON Parse Error', 'data' => $data]);
+        }
+        
+        error_log('addBookingDetail SUCCESS: ' . print_r($insert, true));
+        return json_encode(['status' => 'success', 'data' => $insert]);
     }
 
     public function getBookingDetails($php_fetch, $table, $bookingid)

@@ -71,7 +71,11 @@ include_once '../../helper/admin_apps.php' ?>
           status: 'Pending'
         },
         dataSrc: function(json) {
+          console.log('📊 Booking requests received:', json);
+          console.log('📊 Total records:', json ? json.length : 0);
+          
           if (!json || json.length === 0) {
+            console.warn('⚠️ No pending booking requests found');
             $('#bookingRequestTable').html(`
               <div class="card shadow-sm border rounded-3 mb-3">
                 <div class="card-body text-center p-4">
@@ -81,8 +85,14 @@ include_once '../../helper/admin_apps.php' ?>
                 </div>
               </div>
             `);
+          } else {
+            console.log('✅ Displaying ' + json.length + ' booking requests');
           }
           return json;
+        },
+        error: function(xhr, status, error) {
+          console.error('❌ AJAX Error loading booking requests:', {xhr, status, error});
+          console.error('Response text:', xhr.responseText);
         }
       },
       columns: [{

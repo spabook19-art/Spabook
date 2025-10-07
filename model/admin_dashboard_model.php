@@ -220,37 +220,49 @@ class Admin
     {
         $result = [];
 
-        // Fetch bookings with joins
-        $bookings = $php_fetch(
-            'booking',
-            'bookingid, users(profile_picture,full_name), booking_details(bookingdetailsid,status, price,date_modified, services(service_name))',
+        // Log the query attempt
+        error_log("=== LOAD_BOOKING_REQUESTS ===");
+        error_log("Status filter: " . $status);
+
+        // Query booking_details directly for better filtering
+        $bookingDetails = $php_fetch(
+            'booking_details',
+            'bookingdetailsid, status, price, date_modified, booking_id, service_id, services(service_name), booking!inner(bookingid, users(profile_picture, full_name))',
             [
-                'booking_details.status' => $status // Only Pending bookings
+                'status' => $status // Filter directly on status column
             ],
         );
 
-        foreach ($bookings as $booking) {
+        error_log("Raw booking_details fetched: " . json_encode($bookingDetails));
+        error_log("Total records found: " . (is_array($bookingDetails) ? count($bookingDetails) : 0));
+
+        if (!is_array($bookingDetails) || empty($bookingDetails)) {
+            error_log("❌ No booking details found or invalid response");
+            return json_encode([]);
+        }
+
+        foreach ($bookingDetails as $details) {
             // Handle nested arrays safely
+            $booking    = $details['booking'] ?? null;
             $user       = $booking['users'] ?? null;
             $fullname   = $user['full_name'] ?? 'Unknown User';
             $profilePic = $user['profile_picture'] ?? '';
+            
+            $service    = $details['services'] ?? null;
+            $serviceName = $service['service_name'] ?? 'Unknown Service';
 
-            $detailsArr = $booking['booking_details'] ?? [];
-            foreach ($detailsArr as $details) {
-                $service    = $details['services'] ?? null;
-                $serviceName = $service['service_name'] ?? 'Unknown Service';
-
-                $result[] = [
-                    'bookingdetailsid'     => $details['bookingdetailsid'],
-                    'user_name'      => $fullname,
-                    'services_name'  => $serviceName,
-                    'price'          => $details['price'] ?? 0,
-                    'booking_date'   => date('M d, Y g:i A', strtotime($details['date_modified'] ?? 'now')),
-                    'booking_status' => $details['status'] ?? '',
-                    'profile_picture' => $profilePic ?? null
-                ];
-            }
+            $result[] = [
+                'bookingdetailsid' => $details['bookingdetailsid'],
+                'user_name'        => $fullname,
+                'services_name'    => $serviceName,
+                'price'            => $details['price'] ?? 0,
+                'booking_date'     => date('M d, Y g:i A', strtotime($details['date_modified'] ?? 'now')),
+                'booking_status'   => $details['status'] ?? '',
+                'profile_picture'  => $profilePic ?? null
+            ];
         }
+
+        error_log("✅ Processed " . count($result) . " booking requests");
 
         return json_encode($result);
     }

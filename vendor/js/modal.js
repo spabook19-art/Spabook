@@ -216,46 +216,18 @@ function onGlobalModalReady() {
     return;
   }
 
-  // Check if this is the booking modal
-  if ($('#selected-service-name').length > 0) {
-    // Populate service data
-    $('#selected-service-name').text(data.name);
-    $('#selected-service-price').text('₱' + data.price).data('price', data.price);
-    $('#selected-service-id').val(data.id);
-    
-    // Store service data globally for therapist loading
-    selectedServiceData = data;
-    
-    // Load therapists for this service
-    if (typeof loadTherapists === 'function') {
-      loadTherapists(data.id);
-    }
-
-    // Update confirm button handler
-    $('#confirmServiceBtn').off('click').on('click', function () {
-      const numPeople = parseInt($('#numPeople').val());
-
-      if (numPeople < 1 || numPeople > 10) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Invalid Number',
-          text: 'Please enter a valid number of people (1-10).',
-        });
-        return;
-      }
-
-      // Update selected therapists before proceeding
-      if (typeof updateSelectedTherapists === 'function') {
-        updateSelectedTherapists();
-      }
-
-      // Add service to cart with therapist information
-      addServiceToCart(data, numPeople, selectedTherapists);
-    });
-  }
+  // Note: The booking modal now handles its own initialization
+  // via the initializeBookingModal() function in user_modal-booking.php
+  // This function is kept for backward compatibility with other modals
+  
+  console.log("ℹ️ Modal ready with data:", data);
 }
 
-function addServiceToCart(serviceData, numPeople, therapists) {
+// Legacy function - kept for backward compatibility but not actively used
+// The booking modal now has its own addServiceToCart implementation
+function addServiceToCartLegacy(serviceData, numPeople, therapists) {
+  console.log('⚠️ Legacy addServiceToCart called - this should not happen normally');
+  
   // Check for duplicates
   const existing = window.serviceCart.find(s => s.name === serviceData.name);
   if (existing) {

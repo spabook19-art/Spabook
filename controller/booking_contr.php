@@ -5,9 +5,9 @@ require_once '../utils/cache.php';
 date_default_timezone_set('Asia/Manila');
 
 header('Content-Type: application/json');
-ini_set('display_errors', 0);
-ini_set('display_startup_errors', 0);
-error_reporting(0);
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
 // Initialize cache
 Cache::init();
@@ -56,10 +56,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user_id = $_POST['user_id'] ?? null;
             $total_price = $_POST['total_price'] ?? null;
             $payment_img = $_POST['payment_img'] ?? null;
+            $patient_id = $_POST['patient_id'] ?? null; // Get patient_id if provided
             $services = isset($_POST['services']) ? json_decode($_POST['services'], true) : [];
 
             error_log('User ID: ' . $user_id);
             error_log('Total Price: ' . $total_price);
+            error_log('Patient ID: ' . ($patient_id ?? 'Not provided'));
             error_log('Services Count: ' . count($services));
             error_log('Services: ' . print_r($services, true));
 
@@ -68,53 +70,125 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             error_log('Creating booking in database...');
-            $bookingData = $BookingModel->createBooking($php_insert, 'booking', [
+            
+            // Prepare booking data
+            $bookingDataArray = [
                 'user_id' => $user_id,
                 'total_price' => $total_price,
                 'payment_status' => true,
                 'payment_img' => $payment_img,
                 'booking_status' => 'Pending'
                 // date_created will be set automatically by Supabase DEFAULT NOW()
-            ]);
+            ];
+            
+            // Add patient_id if provided (for stroke therapy bookings)
+            if ($patient_id) {
+                $bookingDataArray['patient_id'] = $patient_id;
+            }
+            
+            $bookingData = $BookingModel->createBooking($php_insert, 'booking', $bookingDataArray);
 
-            // file_put_contents('debug_booking.txt', print_r($bookingData, true));
+            error_log('Booking creation result: ' . print_r($bookingData, true));
+
+            // Check if booking creation failed
+            if (isset($bookingData['status']) && $bookingData['status'] === 'error') {
+                error_log('ERROR: Booking creation failed - ' . ($bookingData['message'] ?? 'Unknown error'));
+                response(['status' => 'error', 'message' => $bookingData['message'] ?? 'Booking creation failed']);
+            }
 
             if (isset($bookingData['bookingid'])) {
                 $bookingId = $bookingData['bookingid'];
-                error_log('Booking created successfully! Booking ID: ' . $bookingId);
+                error_log('✓ Booking created successfully! Booking ID: ' . $bookingId);
 
                 // Process each service
                 error_log('Processing ' . count($services) . ' services...');
+                $detailsCreated = 0;
+                $detailsFailed = 0;
+                
                 foreach ($services as $service) {
                     $numPeople = intval($service['people'] ?? 1);
                     
-                    // Create separate booking_detail row for EACH person (quantity)
-                    for ($person = 1; $person <= $numPeople; $person++) {
-                        // Find therapist for this person (if assigned)
-                        $assignedTherapistId = null;
+                    // Get schedule date/time from user selection
+                    $scheduleDate = $service['selectedDate'] ?? null;
+                    $scheduleTime = $service['selectedTime'] ?? null;
+                    
+                    // Combine date and time into schedule_start timestamp
+                    $scheduleStart = null;
+                    $scheduleEnd = null;
+                    
+                    if ($scheduleDate && $scheduleTime) {
+                        // Create schedule_start timestamp (format: YYYY-MM-DD HH:MM:SS)
+                        $scheduleStart = $scheduleDate . ' ' . $scheduleTime . ':00';
                         
-                        if (isset($service['therapists']) && is_array($service['therapists'])) {
-                            foreach ($service['therapists'] as $therapist) {
-                                if (isset($therapist['person']) && $therapist['person'] == $person) {
-                                    $assignedTherapistId = $therapist['therapistId'] ?? null;
-                                    break;
-                                }
-                            }
-                        }
+                        // Calculate schedule_end (assume 1 hour duration per service)
+                        $startTime = strtotime($scheduleStart);
+                        $scheduleEnd = date('Y-m-d H:i:s', strtotime('+1 hour', $startTime));
                         
-                        // Insert one row per person with quantity = 1
-                        $BookingModel->addBookingDetail($php_insert, 'booking_details', [
-                            'booking_id' => $bookingId,
-                            'service_id' => $service['id'],
-                            'quantity' => 1, // Always 1 per row (one row per person)
-                            'price' => $service['price'],
-                            'therapist_id' => $assignedTherapistId, // NULL if not assigned
-                            'schedule_start' => null, // Admin will set later
-                            'schedule_end' => null, // Admin will set later
-                            'status' => 'Pending' // Default status
-                        ]);
+                        error_log("Schedule: $scheduleStart to $scheduleEnd");
                     }
+                    
+                    // Get therapist assignment (if any - for stroke services)
+                    $assignedTherapistId = null;
+                    if (isset($service['therapists']) && is_array($service['therapists']) && count($service['therapists']) > 0) {
+                        // Use the first therapist assignment
+                        $therapistId = $service['therapists'][0]['therapistId'] ?? null;
+                        
+                        // Convert 'any' string to null, and ensure it's an integer or null
+                        if ($therapistId === 'any' || $therapistId === '' || $therapistId === 'null') {
+                            $assignedTherapistId = null;
+                        } elseif (is_numeric($therapistId)) {
+                            $assignedTherapistId = intval($therapistId);
+                        } else {
+                            $assignedTherapistId = null;
+                        }
+                    }
+                    
+                    // Create ONE booking_details row per service
+                    $detailData = [
+                        'booking_id' => $bookingId,
+                        'service_id' => $service['id'],
+                        'quantity' => $numPeople, // Number of people for this service
+                        'price' => $service['price'],
+                        'therapist_id' => $assignedTherapistId, // NULL if not assigned
+                        'schedule_start' => $scheduleStart, // User selected date/time
+                        'schedule_end' => $scheduleEnd, // Auto-calculated end time (1 hour later)
+                        'status' => 'Pending' // Default status
+                    ];
+                    
+                    error_log('========== BOOKING_DETAIL INSERT ATTEMPT ==========');
+                    error_log('Service ID: ' . $service['id']);
+                    error_log('Service Name: ' . ($service['name'] ?? 'Unknown'));
+                    error_log('Quantity: ' . $numPeople);
+                    error_log('Price: ' . $service['price']);
+                    error_log('Therapist ID: ' . ($assignedTherapistId ?? 'NULL'));
+                    error_log('Schedule Start: ' . ($scheduleStart ?? 'NULL'));
+                    error_log('Schedule End: ' . ($scheduleEnd ?? 'NULL'));
+                    error_log('Detail Data Array:');
+                    error_log(print_r($detailData, true));
+                    
+                    $detailResult = $BookingModel->addBookingDetail($php_insert, 'booking_details', $detailData);
+                    error_log('Raw insert result from model: ' . $detailResult);
+                    
+                    $resultDecoded = json_decode($detailResult, true);
+                    error_log('Decoded result: ' . print_r($resultDecoded, true));
+                    
+                    if (isset($resultDecoded['status']) && $resultDecoded['status'] === 'success') {
+                        $detailsCreated++;
+                        error_log('✅ SUCCESS: Booking detail created for service ' . $service['id']);
+                    } else {
+                        $detailsFailed++;
+                        error_log('❌ FAILED: Could not create booking_detail for service ' . $service['id']);
+                        if (isset($resultDecoded['message'])) {
+                            error_log('Error message: ' . $resultDecoded['message']);
+                        }
+                        if (isset($resultDecoded['data'])) {
+                            error_log('Attempted data: ' . print_r($resultDecoded['data'], true));
+                        }
+                    }
+                    error_log('===================================================');
                 }
+                
+                error_log("✓ Booking details summary: $detailsCreated created, $detailsFailed failed");
 
                 // Create notification for user if notification system is available
                 if ($notificationTableExists) {
@@ -537,8 +611,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 response(['status' => 'error', 'message' => 'Booking ID is required']);
             }
 
-            // Get user_id for the booking
-            $bookingData = $php_fetch('booking', 'user_id', ['bookingid' => $bookingid]);
+            // Get booking data including user_id and patient_id
+            $bookingData = $php_fetch('booking', 'user_id, patient_id', ['bookingid' => $bookingid]);
+            
+            // Check if this booking has a patient_id (stroke service)
+            $patientId = null;
+            if (isset($bookingData[0]['patient_id']) && !empty($bookingData[0]['patient_id'])) {
+                $patientId = $bookingData[0]['patient_id'];
+                
+                // Delete the patient information
+                try {
+                    $php_delete('patient', ['patient_id' => $patientId]);
+                    error_log("Deleted patient info (ID: $patientId) for rejected booking (ID: $bookingid)");
+                } catch (Exception $e) {
+                    error_log("Failed to delete patient info: " . $e->getMessage());
+                }
+            }
 
             $result = $BookingModel->updateBookingStatus($php_update, 'booking', $bookingid, 'Rejected');
 

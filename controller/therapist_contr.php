@@ -46,6 +46,73 @@ if (isset($_POST['action'])) {
             }
             break;
             
+        case 'get_available_therapists':
+            // Get available therapists for a specific service, date, and time
+            $service_id = isset($_POST['service_id']) ? intval($_POST['service_id']) : null;
+            $date = isset($_POST['date']) ? $_POST['date'] : null;
+            $time = isset($_POST['time']) ? $_POST['time'] : null;
+            
+            try {
+                // Fetch all active therapists from the users table
+                $therapists_data = $php_fetch('users', '*', ['role' => 'Therapist', 'is_active' => 1, 'order' => 'full_name.asc']);
+                
+                if (!empty($therapists_data) && !isset($therapists_data['error'])) {
+                    // Format therapists data
+                    $formatted_therapists = [];
+                    
+                    // Handle both single result and array of results
+                    $therapists_array = isset($therapists_data['id']) ? [$therapists_data] : $therapists_data;
+                    
+                    // Get booked therapists for this date and time
+                    $booked_therapists = [];
+                    if ($date && $time) {
+                        // Fetch bookings for this date and time that are not rejected or cancelled
+                        $bookings = $php_fetch('booking', '*', [
+                            'booking_date' => $date,
+                            'booking_time' => $time,
+                            'booking_status' => ['Pending', 'Accepted']
+                        ]);
+                        
+                        // Extract therapist IDs from bookings
+                        if (!empty($bookings) && !isset($bookings['error'])) {
+                            $bookings_array = isset($bookings['booking_id']) ? [$bookings] : $bookings;
+                            foreach ($bookings_array as $booking) {
+                                if (isset($booking['therapist_id']) && $booking['therapist_id']) {
+                                    $booked_therapists[] = $booking['therapist_id'];
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Filter out booked therapists and format the result
+                    foreach ($therapists_array as $therapist) {
+                        $therapist_id = $therapist['user_id'] ?? $therapist['id'];
+                        
+                        // Only include therapists who are not already booked for this time slot
+                        if (!in_array($therapist_id, $booked_therapists)) {
+                            $formatted_therapists[] = [
+                                'therapistid' => $therapist_id,
+                                'therapist_name' => $therapist['full_name'],
+                                'therapist_desc' => $therapist['bio'] ?? 'Professional therapist',
+                                'contact_number' => $therapist['contact_number'] ?? '',
+                                'email' => $therapist['email'] ?? '',
+                                'is_active' => $therapist['is_active'] ?? true
+                            ];
+                        }
+                    }
+                    
+                    // Return formatted therapists data
+                    echo json_encode($formatted_therapists);
+                } else {
+                    // No therapists found
+                    echo json_encode('nodata');
+                }
+            } catch (Exception $e) {
+                error_log('Error fetching available therapists: ' . $e->getMessage());
+                echo json_encode(['error' => 'Failed to fetch available therapists', 'message' => $e->getMessage()]);
+            }
+            break;
+            
         default:
             echo json_encode(['status' => 'error', 'message' => 'Invalid action']);
             break;

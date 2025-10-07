@@ -377,14 +377,29 @@ include_once '../../helper/user_apps.php' ?>
         // Store the selected element reference for visual feedback
         window.selectedServiceElement = $(this);
 
-        // Open the booking modal with service details
-        showGlobalModal('../../views/modal/user_modal-booking.php', {
-            id: serviceId,
-            name: serviceName,
-            price: servicePrice,
-            description: serviceDescription,
-            image: serviceImage
-        });
+        // Check if this is a stroke therapy service
+        const isStrokeTreatment = serviceName.toLowerCase().includes('stroke');
+
+        // If it's a stroke treatment, show patient info form first
+        if (isStrokeTreatment) {
+            console.log('🏥 Stroke treatment service detected - showing patient info form');
+            showGlobalModal('../../views/modal/user_modal-patient-info.php', {
+                id: serviceId,
+                name: serviceName,
+                price: servicePrice,
+                description: serviceDescription,
+                image: serviceImage
+            });
+        } else {
+            // For other services, show booking modal directly
+            showGlobalModal('../../views/modal/user_modal-booking.php', {
+                id: serviceId,
+                name: serviceName,
+                price: servicePrice,
+                description: serviceDescription,
+                image: serviceImage
+            });
+        }
     });
 
     // Function to update checkout badge (make it global)
