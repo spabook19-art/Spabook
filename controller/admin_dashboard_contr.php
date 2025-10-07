@@ -38,11 +38,7 @@ if (isset($_POST['action'])) {
 
         case 'load_booking_requests':
             $status = trim($_POST['status']);
-            error_log("=== ADMIN_DASHBOARD_CONTR: load_booking_requests ===");
-            error_log("Requested status: " . $status);
-            $result = $Admin->loadBookingRequests($php_fetch, $status);
-            error_log("Result length: " . strlen($result));
-            echo $result;
+            echo $Admin->loadBookingRequests($php_fetch, $status);
             break;
 
         case 'get_booking_details':

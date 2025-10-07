@@ -219,35 +219,39 @@ class Admin
         public function loadBookingRequests($php_fetch)
     {
         $result = [];
+        $filter = $status === 'Request' ? 'Pending' : ['Confirmed', 'On-Going'];
 
         // Fetch bookings with joins
         $bookings = $php_fetch(
             'booking',
-            'bookingid, users(profile_picture,full_name), booking_details(bookingdetailsid,status, price,date_modified, services(service_name))',
+            'bookingid, users(profile_picture, full_name), booking_details(bookingdetailsid, bookingdetails_id, status, price, date_modified, services(service_name))',
             [
-                'booking_details.status' => 'Pending' // Only Pending bookings
+                'booking_details.status' => $filter
             ],
         );
 
         foreach ($bookings as $booking) {
-            // Handle nested arrays safely
-            $user       = $booking['users'] ?? null;
-            $fullname   = $user['full_name'] ?? 'Unknown User';
-            $profilePic = $user['profile_picture'] ?? '';
+            // Safely access user info
+            $user        = $booking['users'] ?? [];
+            $fullname    = $user['full_name'] ?? 'Unknown User';
+            $profilePic  = $user['profile_picture'] ?? '';
 
+            // Safely access booking details
             $detailsArr = $booking['booking_details'] ?? [];
+
             foreach ($detailsArr as $details) {
-                $service    = $details['services'] ?? null;
-                $serviceName = $service['service_name'] ?? 'Unknown Service';
+                $service      = $details['services'] ?? [];
+                $serviceName  = $service['service_name'] ?? 'Unknown Service';
 
                 $result[] = [
-                    'bookingdetailsid'     => $details['bookingdetailsid'],
-                    'user_name'      => $fullname,
-                    'services_name'  => $serviceName,
-                    'price'          => $details['price'] ?? 0,
-                    'booking_date'   => date('M d, Y g:i A', strtotime($details['date_modified'] ?? 'now')),
-                    'booking_status' => $details['status'] ?? '',
-                    'profile_picture' => $profilePic ?? null
+                    'bookingdetailsid'   => $details['bookingdetailsid'] ?? null,
+                    'bookingdetails_id'  => $details['bookingdetails_id'] ?? null,
+                    'user_name'          => $fullname,
+                    'services_name'      => $serviceName,
+                    'price'              => $details['price'] ?? 0,
+                    'booking_date'       => date('M d, Y g:i A', strtotime($details['date_modified'] ?? 'now')),
+                    'booking_status'     => $details['status'] ?? '',
+                    'profile_picture'    => $profilePic
                 ];
             }
         }
