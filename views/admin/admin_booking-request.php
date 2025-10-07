@@ -113,7 +113,7 @@ include_once '../../helper/admin_apps.php' ?>
                 <!-- Info -->
                 <div class="col">
                   <div class="fw-semibold user-name">${row.user_name}</div>
-                  <div class="small text-muted mb-1">Booking ID: #${row.bookingdetailsid}</div>
+                  <div class="small text-muted mb-1">Booking ID: #${row.bookingdetails_id}</div>
                   <div class="d-flex flex-wrap gap-2 small mt-1">
                     <span class="badge bg-light text-dark border px-2 py-1">
                       <i class="bi bi-briefcase me-1"></i>${row.services_name}
