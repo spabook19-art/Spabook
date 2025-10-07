@@ -60,6 +60,19 @@ include_once '../../helper/admin_apps.php' ?>
     if ($.fn.DataTable.isDataTable('#bookingRequestTable')) {
       $('#bookingRequestTable').DataTable().clear().destroy();
     }
+    // $.ajax({
+    //   url: '../../controller/admin_dashboard_contr.php',
+    //   type: 'POST',
+    //   dataType: 'json',
+    //   data: {
+    //     action: 'load_booking_requests',
+    //     status: 'Request'
+    //   },
+    //   success: function(response) {
+    //     console.log('Initial booking requests load:', response);
+    //   }
+
+    // });
 
     let booking_request_table = $('#bookingRequestTable').DataTable({
       ajax: {
@@ -71,27 +84,27 @@ include_once '../../helper/admin_apps.php' ?>
           status: 'Request'
         },
         dataSrc: function(json) {
-          console.log('📊 Booking requests received:', json);
-          console.log('📊 Total records:', json ? json.length : 0);
-          
           if (!json || json.length === 0) {
-            console.warn('⚠️ No pending booking requests found');
             $('#bookingRequestTable').html(`
-              <div class="card shadow-sm border rounded-3 mb-3">
-                <div class="card-body text-center p-4">
-                  <i class="bi bi-inbox" style="font-size: 3rem; color: #6c757d;"></i>
-                  <h5 class="mt-3 text-muted">No Booking Requests</h5>
-                  <p class="text-muted">There are no pending booking requests at the moment.</p>
+                <div class="card shadow-sm border rounded-3 mb-3">
+                  <div class="card-body text-center p-4">
+                    <i class="bi bi-inbox" style="font-size: 3rem; color: #6c757d;"></i>
+                    <h5 class="mt-3 text-muted">No Booking Requests</h5>
+                    <p class="text-muted">There are no pending booking requests at the moment.</p>
+                  </div>
                 </div>
-              </div>
-            `);
+              `);
           } else {
             console.log('✅ Displaying ' + json.length + ' booking requests');
           }
           return json;
         },
         error: function(xhr, status, error) {
-          console.error('❌ AJAX Error loading booking requests:', {xhr, status, error});
+          console.error('❌ AJAX Error loading booking requests:', {
+            xhr,
+            status,
+            error
+          });
           console.error('Response text:', xhr.responseText);
         }
       },
@@ -103,38 +116,38 @@ include_once '../../helper/admin_apps.php' ?>
             `<i class="bi bi-person-circle user-avatar" style="font-size:4.5rem; min-height:72px; min-width:72px; display:flex; align-items:center; justify-content:center;"></i>`;
 
           return `
-          <div class="card shadow-sm border rounded-3 mb-3">
-            <div class="card-body">
-              <div class="row g-3 align-items-center">
-                <!-- Image -->
-                <div class="col-auto d-flex align-items-center justify-content-center">
-                  ${profileImage}
-                </div>
-                <!-- Info -->
-                <div class="col">
-                  <div class="fw-semibold user-name">${row.user_name}</div>
-                  <div class="small text-muted mb-1">Booking ID: #${row.bookingdetails_id}</div>
-                  <div class="d-flex flex-wrap gap-2 small mt-1">
-                    <span class="badge bg-light text-dark border px-2 py-1">
-                      <i class="bi bi-briefcase me-1"></i>${row.services_name}
-                    </span>
-                    <span class="badge bg-light text-dark border px-2 py-1">
-                      <i class="bi bi-calendar-event me-1"></i>${row.booking_date}
-                    </span>
-                    <span class="badge bg-success text-white px-2 py-1">
-                      ₱${row.price}
-                    </span>
+            <div class="card shadow-sm border rounded-3 mb-3">
+              <div class="card-body">
+                <div class="row g-3 align-items-center">
+                  <!-- Image -->
+                  <div class="col-auto d-flex align-items-center justify-content-center">
+                    ${profileImage}
+                  </div>
+                  <!-- Info -->
+                  <div class="col">
+                    <div class="fw-semibold user-name">${row.user_name}</div>
+                    <div class="small text-muted mb-1">Booking ID: #${row.bookingdetails_id}</div>
+                    <div class="d-flex flex-wrap gap-2 small mt-1">
+                      <span class="badge bg-light text-dark border px-2 py-1">
+                        <i class="bi bi-briefcase me-1"></i>${row.services_name}
+                      </span>
+                      <span class="badge bg-light text-dark border px-2 py-1">
+                        <i class="bi bi-calendar-event me-1"></i>${row.booking_date}
+                      </span>
+                      <span class="badge bg-success text-white px-2 py-1">
+                        ₱${row.price}
+                      </span>
+                    </div>
+                  </div>
+                  <!-- Actions -->
+                  <div class="col-auto d-flex gap-2">
+                    <button class="btn btn-primary btn-sm  px-3" onclick="viewBookingDetails('${row.bookingdetailsid}');">View</button>
+                    <button class="btn btn-secondary btn-sm  px-3" onclick="declineRequest('${row.bookingdetailsid}');">Decline</button>
+                    <button class="btn btn-success btn-sm  px-3" onclick="acceptRequest('${row.bookingdetailsid}');">Accept</button>
                   </div>
                 </div>
-                <!-- Actions -->
-                <div class="col-auto d-flex gap-2">
-                  <button class="btn btn-primary btn-sm  px-3" onclick="viewBookingDetails('${row.bookingdetailsid}');">View</button>
-                  <button class="btn btn-secondary btn-sm  px-3" onclick="declineRequest('${row.bookingdetailsid}');">Decline</button>
-                  <button class="btn btn-success btn-sm  px-3" onclick="acceptRequest('${row.bookingdetailsid}');">Accept</button>
-                </div>
               </div>
-            </div>
-          </div>`;
+            </div>`;
         }
       }],
       paging: true,
