@@ -216,36 +216,24 @@ class Admin
         ]);
     }
 
-    public function loadBookingRequests($php_fetch, $status)
+        public function loadBookingRequests($php_fetch)
     {
         $result = [];
-        $filter =  $status === 'Request' ? 'Pending' : ['Confirmed', 'On-Going'];
+
         // Fetch bookings with joins
         $bookings = $php_fetch(
             'booking',
-            'bookingid, users(profile_picture,full_name), booking_details(bookingdetailsid,bookingdetails_id,status, price,date_modified, services(service_name))',
+            'bookingid, users(profile_picture,full_name), booking_details(bookingdetailsid,status, price,date_modified, services(service_name))',
             [
-                'booking_details.status' =>  $filter // Only Pending bookings
+                'booking_details.status' => 'Pending' // Only Pending bookings
             ],
         );
 
-        error_log("Raw booking_details fetched: " . json_encode($bookingDetails));
-        error_log("Total records found: " . (is_array($bookingDetails) ? count($bookingDetails) : 0));
-
-        if (!is_array($bookingDetails) || empty($bookingDetails)) {
-            error_log("❌ No booking details found or invalid response");
-            return json_encode([]);
-        }
-
-        foreach ($bookingDetails as $details) {
+        foreach ($bookings as $booking) {
             // Handle nested arrays safely
-            $booking    = $details['booking'] ?? null;
             $user       = $booking['users'] ?? null;
             $fullname   = $user['full_name'] ?? 'Unknown User';
             $profilePic = $user['profile_picture'] ?? '';
-            
-            $service    = $details['services'] ?? null;
-            $serviceName = $service['service_name'] ?? 'Unknown Service';
 
             $detailsArr = $booking['booking_details'] ?? [];
             foreach ($detailsArr as $details) {
@@ -254,7 +242,6 @@ class Admin
 
                 $result[] = [
                     'bookingdetailsid'     => $details['bookingdetailsid'],
-                    'bookingdetails_id'     => $details['bookingdetails_id'],
                     'user_name'      => $fullname,
                     'services_name'  => $serviceName,
                     'price'          => $details['price'] ?? 0,
@@ -264,8 +251,6 @@ class Admin
                 ];
             }
         }
-
-        error_log("✅ Processed " . count($result) . " booking requests");
 
         return json_encode($result);
     }
