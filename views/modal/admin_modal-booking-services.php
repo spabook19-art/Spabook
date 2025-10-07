@@ -15,19 +15,17 @@
       <div class="card-body">
         <div class="row align-items-center">
           <div class="col-md-8">
-            <h6 class="mb-1">
+            <h6 class="mb-1" id="user_name">
               <i class="bi bi-person-circle me-2"></i>
               Juan Dela Cruz
             </h6>
             <div class="d-flex flex-wrap gap-2 small">
-              <span class="badge bg-primary">ID: #12345</span>
-              <span class="badge bg-info">
+              <span class="badge bg-primary" id="booking_id"></span>
+              <span class="badge bg-info" id="booking_date">
                 <i class="bi bi-calendar me-1"></i>
-                10/01/2025
               </span>
-              <span class="badge bg-success">
+              <span class="badge bg-success" id="total_price">
                 <i class="bi bi-currency-dollar me-1"></i>
-                ₱1500
               </span>
             </div>
           </div>
@@ -168,47 +166,13 @@
         </div>
       </div>
 
-      <!-- Service Card (Completed) -->
-      <div class="card service-card completed mb-3">
-        <div class="card-body">
-          <div class="row align-items-start">
-            <div class="col-md-8">
-              <div class="d-flex align-items-center mb-2">
-                <i class="bi bi-check-circle-fill text-success me-2 fs-5"></i>
-                <h6 class="mb-0 fw-bold">Hot Stone Massage</h6>
-              </div>
-              <p class="text-muted mb-2 small">Relaxing hot stone therapy</p>
-            </div>
-            <div class="col-md-4 text-md-end">
-              <span class="badge bg-success fs-6 py-2 px-3">
-                <i class="bi bi-check-circle me-1"></i>
-                Completed
-              </span>
-            </div>
-          </div>
-
-          <!-- Therapist Notes (readonly) -->
-          <div class="therapist-notes-section mt-3">
-            <label class="form-label small fw-bold">
-              <i class="bi bi-journal-text me-1"></i> Therapist Notes
-            </label>
-            <textarea class="form-control" rows="3" readonly>Patient responded well. No pain reported.</textarea>
-          </div>
-        </div>
-      </div>
-
     </div>
   </div>
 
 </div>
 
-<div class="modal-footer justify-content-between">
-  <div>
-    <small class="text-muted">
-      <i class="bi bi-info-circle me-1"></i>
-      Complete individual services as they are finished
-    </small>
-  </div>
+<div class="modal-footer justify-content-end">
+
   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
 </div>
 
@@ -543,7 +507,7 @@
   // 
 </script>
 
- <script>
+<script>
   // $(document).ready(function() {
   //   // Load booking services when modal data is available
   //   if (window.modalData && window.modalData.bookingid) {

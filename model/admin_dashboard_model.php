@@ -219,17 +219,13 @@ class Admin
     public function loadBookingRequests($php_fetch, $status)
     {
         $result = [];
-
-        // Log the query attempt
-        error_log("=== LOAD_BOOKING_REQUESTS ===");
-        error_log("Status filter: " . $status);
-
-        // Query booking_details directly for better filtering
-        $bookingDetails = $php_fetch(
-            'booking_details',
-            'bookingdetailsid, status, price, date_modified, booking_id, service_id, services(service_name), booking!inner(bookingid, users(profile_picture, full_name))',
+        $filter =  $status === 'Request' ? 'Pending' : ['Confirmed', 'On-Going'];
+        // Fetch bookings with joins
+        $bookings = $php_fetch(
+            'booking',
+            'bookingid, users(profile_picture,full_name), booking_details(bookingdetailsid,bookingdetails_id,status, price,date_modified, services(service_name))',
             [
-                'status' => $status // Filter directly on status column
+                'booking_details.status' =>  $filter // Only Pending bookings
             ],
         );
 
@@ -251,15 +247,22 @@ class Admin
             $service    = $details['services'] ?? null;
             $serviceName = $service['service_name'] ?? 'Unknown Service';
 
-            $result[] = [
-                'bookingdetailsid' => $details['bookingdetailsid'],
-                'user_name'        => $fullname,
-                'services_name'    => $serviceName,
-                'price'            => $details['price'] ?? 0,
-                'booking_date'     => date('M d, Y g:i A', strtotime($details['date_modified'] ?? 'now')),
-                'booking_status'   => $details['status'] ?? '',
-                'profile_picture'  => $profilePic ?? null
-            ];
+            $detailsArr = $booking['booking_details'] ?? [];
+            foreach ($detailsArr as $details) {
+                $service    = $details['services'] ?? null;
+                $serviceName = $service['service_name'] ?? 'Unknown Service';
+
+                $result[] = [
+                    'bookingdetailsid'     => $details['bookingdetailsid'],
+                    'bookingdetails_id'     => $details['bookingdetails_id'],
+                    'user_name'      => $fullname,
+                    'services_name'  => $serviceName,
+                    'price'          => $details['price'] ?? 0,
+                    'booking_date'   => date('M d, Y g:i A', strtotime($details['date_modified'] ?? 'now')),
+                    'booking_status' => $details['status'] ?? '',
+                    'profile_picture' => $profilePic ?? null
+                ];
+            }
         }
 
         error_log("✅ Processed " . count($result) . " booking requests");
@@ -273,7 +276,7 @@ class Admin
         // Fetch booking details with joins
         $bookings = $php_fetch(
             'booking',
-            'bookingid, payment_img, users(full_name, contact_number,email), booking_details(bookingdetailsid,status, price, quantity,schedule_start, services(service_name, description, per_minute,price))',
+            'bookingid, payment_img, users(full_name, contact_number,email), booking_details(bookingdetailsid,bookingdetails_id,status, price, quantity,schedule_start, services(service_name, description, per_minute,price))',
             [
                 'booking_details.bookingdetailsid' => $bookingdetailsid
             ],
@@ -296,6 +299,7 @@ class Admin
 
                 $result = [
                     'booking_id'     => $details['bookingdetailsid'],
+                    'bookingdetails_id'     => $details['bookingdetails_id'],
                     'date_schedule'   => date('M d, Y ', strtotime($details['schedule_start']) ?? ''),
                     'time_schedule'   => date('g:i A', strtotime($details['schedule_start']) ?? ''),
                     'booking_status' => $details['status'] ?? '',

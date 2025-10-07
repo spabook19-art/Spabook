@@ -68,7 +68,7 @@ include_once '../../helper/admin_apps.php' ?>
         dataType: 'json',
         data: {
           action: 'load_booking_requests',
-          status: 'Confirmed'
+          status: 'Accepted'
         },
         dataSrc: function(json) {
           if (!json || json.length === 0) {
@@ -92,6 +92,16 @@ include_once '../../helper/admin_apps.php' ?>
             `<img src="${row.profile_picture}" alt="Profile" class="rounded-circle" style="width:72px; height:72px; object-fit:cover;">` :
             `<i class="bi bi-person-circle user-avatar" style="font-size:4.5rem; min-height:72px; min-width:72px; display:flex; align-items:center; justify-content:center;"></i>`;
 
+          let btn = ``;
+          if (row.booking_status === 'Confirmed') {
+            btn = `<button class="btn btn-primary btn-sm px-3" onclick="manageBooking('${row.bookingdetailsid}');"><i class="bi bi-list-check me-1"></i>Services</button>
+                   <button class="btn btn-warning btn-sm px-3" onclick="proceedBooking('${row.bookingdetailsid}');"><i class="bi bi-arrow-right-circle me-1"></i> Proceed</button>
+                  `;
+          } else {
+            btn = `<button class="btn btn-primary btn-sm px-3" onclick="manageBooking('${row.bookingdetailsid}');"><i class="bi bi-list-check me-1"></i>Services</button>
+                   <button class="btn btn-success btn-sm px-3" onclick="completeBooking('${row.bookingdetailsid}');"><i class="bi bi-check-circle me-1"></i>Complete</button>`;
+          }
+
           return `
           <div class="card shadow-sm border rounded-3 mb-3">
             <div class="card-body">
@@ -103,7 +113,7 @@ include_once '../../helper/admin_apps.php' ?>
                 <!-- Info -->
                 <div class="col">
                   <div class="fw-semibold user-name">${row.user_name}</div>
-                  <div class="small text-muted mb-1">Booking ID: #${row.bookingdetailsid}</div>
+                  <div class="small text-muted mb-1">Booking ID: ${row.bookingdetails_id}</div>
                   <div class="d-flex flex-wrap gap-2 small mt-1">
                     <span class="badge bg-light text-dark border px-2 py-1">
                       <i class="bi bi-briefcase me-1"></i>${row.services_name}
@@ -118,9 +128,7 @@ include_once '../../helper/admin_apps.php' ?>
                 </div>
                 <!-- Actions -->
                 <div class="col-auto d-flex gap-2">
-                  <button class="btn btn-primary btn-sm px-3" onclick="manageBooking('${row.bookingdetailsid}');"><i class="bi bi-list-check me-1"></i>Services</button>
-                  <button class="btn btn-warning btn-sm px-3" onclick="proceedBooking('${row.bookingdetailsid}');"><i class="bi bi-arrow-right-circle me-1"></i> Proceed</button>
-                  <button class="btn btn-success btn-sm px-3" onclick="completeBooking('${row.bookingdetailsid}');"><i class="bi bi-check-circle me-1"></i>Complete</button>
+                ${btn}
                 </div>
               </div>
             </div>
@@ -152,6 +160,25 @@ include_once '../../helper/admin_apps.php' ?>
   function manageBooking(bookingdetailsid) {
     console.log('🔧 Opening service management for booking:', bookingdetailsid);
     showGlobalModal('../../views/modal/admin_modal-booking-services.php');
+    $.ajax({
+      url: '../../controller/admin_dashboard_contr.php',
+      type: 'POST',
+      data: {
+        action: 'get_booking_details',
+        bookingdetailsid: bookingdetailsid
+      },
+      dataType: 'json',
+      success: function(response) {
+        $('#user_name').text(response.user_name);
+        $('#booking_id').text(`ID: ${response.bookingdetails_id}`);
+        $('#booking_date').html(`<i class="bi bi-calendar me-1"></i> ${response.date_schedule} ${response.time_schedule}`);
+        $('#total_price').html(`<i class="bi bi-currency-dollar me-1"></i> ₱${response.totalprice}`);
+      },
+      error: function() {
+        alert('❌ Network error. Please try again.');
+      }
+    });
+
   }
 
   // $(document).ready(function() {
