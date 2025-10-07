@@ -219,13 +219,13 @@ class Admin
     public function loadBookingRequests($php_fetch, $status)
     {
         $result = [];
-
+        $filter =  $status === 'Request' ? 'Pending' : ['Confirmed', 'On-Going'];
         // Fetch bookings with joins
         $bookings = $php_fetch(
             'booking',
-            'bookingid, users(profile_picture,full_name), booking_details(bookingdetailsid,status, price,date_modified, services(service_name))',
+            'bookingid, users(profile_picture,full_name), booking_details(bookingdetailsid,bookingdetails_id,status, price,date_modified, services(service_name))',
             [
-                'booking_details.status' => $status // Only Pending bookings
+                'booking_details.status' =>  $filter // Only Pending bookings
             ],
         );
 
@@ -242,6 +242,7 @@ class Admin
 
                 $result[] = [
                     'bookingdetailsid'     => $details['bookingdetailsid'],
+                    'bookingdetails_id'     => $details['bookingdetails_id'],
                     'user_name'      => $fullname,
                     'services_name'  => $serviceName,
                     'price'          => $details['price'] ?? 0,
@@ -261,7 +262,7 @@ class Admin
         // Fetch booking details with joins
         $bookings = $php_fetch(
             'booking',
-            'bookingid, payment_img, users(full_name, contact_number,email), booking_details(bookingdetailsid,status, price, quantity,schedule_start, services(service_name, description, per_minute,price))',
+            'bookingid, payment_img, users(full_name, contact_number,email), booking_details(bookingdetailsid,bookingdetails_id,status, price, quantity,schedule_start, services(service_name, description, per_minute,price))',
             [
                 'booking_details.bookingdetailsid' => $bookingdetailsid
             ],
@@ -284,6 +285,7 @@ class Admin
 
                 $result = [
                     'booking_id'     => $details['bookingdetailsid'],
+                    'bookingdetails_id'     => $details['bookingdetails_id'],
                     'date_schedule'   => date('M d, Y ', strtotime($details['schedule_start']) ?? ''),
                     'time_schedule'   => date('g:i A', strtotime($details['schedule_start']) ?? ''),
                     'booking_status' => $details['status'] ?? '',

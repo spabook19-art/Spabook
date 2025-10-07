@@ -68,7 +68,7 @@ include_once '../../helper/admin_apps.php' ?>
         dataType: 'json',
         data: {
           action: 'load_booking_requests',
-          status: 'Pending'
+          status: 'Request'
         },
         dataSrc: function(json) {
           if (!json || json.length === 0) {
