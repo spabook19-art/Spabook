@@ -185,24 +185,51 @@ function submitBookingWithPayment() {
     reader.onload = function(e) {
         const receiptBase64 = e.target.result;
         
+        // Get patient data from cache if available (for stroke therapy bookings)
+        let patientCache = null;
+        const patientCacheStr = sessionStorage.getItem('patient_cache');
+        if (patientCacheStr) {
+            try {
+                patientCache = JSON.parse(patientCacheStr);
+                console.log('📋 Patient cache loaded:', patientCache);
+            } catch (e) {
+                console.error('❌ Error parsing patient cache:', e);
+            }
+        }
+
         // Prepare booking data for submission with correct field names
-        const servicesForSubmission = bookingData.services.map(service => ({
-            id: service.serviceId,
-            name: service.serviceName,
-            people: service.people,
-            price: service.price,
-            selectedDate: service.selectedDate,
-            selectedTime: service.selectedTime,
-            therapists: service.therapists || []
-        }));
-        
-        // Get patient_id from sessionStorage if available (for stroke therapy bookings)
-        const patientId = sessionStorage.getItem('temp_patient_id');
+        const servicesForSubmission = bookingData.services.map(service => {
+            const isStrokeService = (service.serviceName || '').toLowerCase().includes('stroke');
+            
+            const serviceData = {
+                id: service.serviceId,
+                name: service.serviceName,
+                people: service.people,
+                price: service.price,
+                selectedDate: service.selectedDate,
+                selectedTime: service.selectedTime,
+                therapists: service.therapists || []
+            };
+            
+            // Add patient data only for stroke services
+            if (isStrokeService && patientCache) {
+                serviceData.patient_name = patientCache.full_name || null;
+                serviceData.patient_age = patientCache.age || null;
+                serviceData.patient_gender = patientCache.gender || null;
+                serviceData.patient_notes = patientCache.notes || null;
+            } else {
+                serviceData.patient_name = null;
+                serviceData.patient_age = null;
+                serviceData.patient_gender = null;
+                serviceData.patient_notes = null;
+            }
+            
+            return serviceData;
+        });
         
         const submissionData = {
             action: 'create_booking',
             user_id: sessionStorage.getItem('user_id'),
-            patient_id: patientId || null, // Include patient_id if available
             total_price: bookingData.totalAmount,
             payment_img: receiptBase64,
             services: JSON.stringify(servicesForSubmission)
@@ -241,6 +268,8 @@ function submitBookingWithPayment() {
             data: submissionData,
             dataType: 'json',
             success: function(response) {
+                console.log('✅ Booking Response:', response);
+                
                 if (response.status === 'success') {
                     // Clear the cart
                     window.serviceCart = [];
@@ -257,8 +286,8 @@ function submitBookingWithPayment() {
                     // Clear pending booking data
                     window.pendingBookingData = null;
                     
-                    // Clear temporary patient_id from session storage
-                    sessionStorage.removeItem('temp_patient_id');
+                    // Clear patient cache from session storage
+                    sessionStorage.removeItem('patient_cache');
                     
                     // Close modal
                     $('#globalModal').modal('hide');
@@ -291,6 +320,7 @@ function submitBookingWithPayment() {
                         }
                     });
                 } else {
+                    console.error('❌ Booking Error:', response);
                     $submitBtn.prop('disabled', false);
                     Swal.fire({
                         icon: 'error',
@@ -300,11 +330,16 @@ function submitBookingWithPayment() {
                 }
             },
             error: function(xhr, status, error) {
+                console.error('❌ AJAX Error:', { xhr, status, error });
+                console.error('Response Text:', xhr.responseText);
                 $submitBtn.prop('disabled', false);
                 Swal.fire({
                     icon: 'error',
                     title: 'Connection Error',
-                    text: 'Unable to submit booking. Please check your connection and try again.',
+                    html: `
+                        <p>Unable to submit booking. Please check your connection and try again.</p>
+                        <pre style="text-align: left; font-size: 12px; max-height: 200px; overflow: auto;">${xhr.responseText || error}</pre>
+                    `
                 });
             }
         });

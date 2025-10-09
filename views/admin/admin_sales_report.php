@@ -8,7 +8,7 @@
         <button class="btn app_open_sidebar_btn" type="button">
           <span class="navbar-toggler-icon"></span>
         </button>
-        <span class="app_content_title fs-25 fw-bold pe-2">Sales Report</span>
+        <span class="app_content_title fs-25 fw-bold pe-2">Sales & Commission Report</span>
         <div class="ms-auto d-flex align-items-center">
           <!-- Notification Bell with Dropdown -->
           <div class="dropdown" id="notificationDropdownWrapper">
@@ -36,7 +36,6 @@
       <div class="app_content_body">
 
         <div class="container-fluid py-3">
-          <h4 class="mb-3">Sales & Commission Report</h4>
 
           <div class="card">
             <div class="card-body">

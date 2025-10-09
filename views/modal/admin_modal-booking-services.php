@@ -44,25 +44,25 @@
     <!-- Services List -->
     <div class="services-list">
 
-      <!-- Service Card (Pending) -->
-      <div class="card service-card pending mb-3">
+      <!-- Service Card (Regular) - Hidden by default, used as template -->
+      <div class="card service-card pending mb-3" id="regular-service-card" style="display: none;">
         <div class="card-body">
           <div class="row align-items-start">
             <div class="col-md-8">
               <div class="d-flex align-items-center mb-2">
                 <i class="bi bi-clock text-warning me-2 fs-5"></i>
-                <h6 class="mb-0 fw-bold">Full Body Massage</h6>
+                <h6 class="mb-0 fw-bold" id="service_name">Full Body Massage</h6>
               </div>
-              <p class="text-muted mb-2 small">Relaxing massage service</p>
+              <p class="text-muted mb-2 small" id="service_description">Relaxing massage service</p>
               <div class="d-flex align-items-center">
                 <span class="badge bg-light text-dark me-2">
-                  <i class="bi bi-clock me-1"></i> 60 min
+                  <i class="bi bi-clock me-1"></i> <span id="service_duration">60</span> min
                 </span>
                 <span class="badge bg-light text-dark me-2">
-                  <i class="bi bi-currency-dollar me-1"></i> ₱500
+                  <i class="bi bi-currency-dollar me-1"></i> ₱<span id="service_price">500</span>
                 </span>
                 <span class="badge bg-light text-dark">
-                  <i class="bi bi-calendar me-1"></i> 10/01/2025
+                  <i class="bi bi-calendar me-1"></i> <span id="service_schedule">10/01/2025</span>
                 </span>
               </div>
             </div>
@@ -87,8 +87,8 @@
         </div>
       </div>
 
-      <!-- Service Card (Stroke Treatment, Pending) -->
-      <div class="card service-card pending stroke-treatment mb-3">
+      <!-- Service Card (Stroke Treatment) - Hidden by default, used as template -->
+      <div class="card service-card pending stroke-treatment mb-3" id="stroke-service-card" style="display: none;">
         <div class="card-body">
           <div class="row align-items-start">
             <div class="col-md-8">

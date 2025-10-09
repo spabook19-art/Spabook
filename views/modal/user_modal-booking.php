@@ -105,9 +105,6 @@ $('#confirmServiceBtn').off('click').on('click', function() {
 function addServiceToCart(serviceData, numPeople) {
     console.log('🛒 Adding to cart:', serviceData, 'for', numPeople, 'people');
     
-    // Get patient ID if available (for stroke services)
-    const patientId = sessionStorage.getItem('temp_patient_id');
-    
     // Initialize cart if needed
     if (!window.serviceCart) {
         window.serviceCart = [];
@@ -117,8 +114,7 @@ function addServiceToCart(serviceData, numPeople) {
     // Only check if trying to add exact same configuration
     const existingIndex = window.serviceCart.findIndex(s => 
         s.id === serviceData.id && 
-        s.people === numPeople &&
-        s.patient_id === (patientId || null)
+        s.people === numPeople
     );
     
     if (existingIndex >= 0) {
@@ -137,8 +133,7 @@ function addServiceToCart(serviceData, numPeople) {
         price: parseFloat(serviceData.price),
         description: serviceData.description,
         image: serviceData.image,
-        people: numPeople,
-        patient_id: patientId || null
+        people: numPeople
     };
     
     // Add to global cart

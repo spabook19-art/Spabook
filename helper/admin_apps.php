@@ -27,7 +27,7 @@
                         <a href="../admin/admin_manage-users.php" class="app_sidebar_link"><i class="pe-2 bi bi-people"></i>User Management</a>
                     </li>
                     <li class="app_sidebar_item" id="admin_sales_report">
-                        <a href="../admin/admin_sales_report.php" class="app_sidebar_link"><i class="pe-2 bi bi-graph-up-arrow"></i>Sales Report</a>
+                        <a href="../admin/admin_sales_report.php" class="app_sidebar_link"><i class="pe-2 bi bi-graph-up-arrow"></i>Sales & Commission Report</a>
                     </li>
                     <li class="app_sidebar_item" id="admin_billing">
                         <a href="../admin/admin_billing.php" class="app_sidebar_link"><i class="pe-2 bi bi-receipt"></i>Billing</a>

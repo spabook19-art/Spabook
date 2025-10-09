@@ -56,12 +56,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user_id = $_POST['user_id'] ?? null;
             $total_price = $_POST['total_price'] ?? null;
             $payment_img = $_POST['payment_img'] ?? null;
-            $patient_id = $_POST['patient_id'] ?? null; // Get patient_id if provided
             $services = isset($_POST['services']) ? json_decode($_POST['services'], true) : [];
 
             error_log('User ID: ' . $user_id);
             error_log('Total Price: ' . $total_price);
-            error_log('Patient ID: ' . ($patient_id ?? 'Not provided'));
             error_log('Services Count: ' . count($services));
             error_log('Services: ' . print_r($services, true));
 
@@ -71,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             error_log('Creating booking in database...');
             
-            // Prepare booking data
+            // Prepare booking data (no patient_id in booking table)
             $bookingDataArray = [
                 'user_id' => $user_id,
                 'total_price' => $total_price,
@@ -80,11 +78,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'booking_status' => 'Pending'
                 // date_created will be set automatically by Supabase DEFAULT NOW()
             ];
-            
-            // Add patient_id if provided (for stroke therapy bookings)
-            if ($patient_id) {
-                $bookingDataArray['patient_id'] = $patient_id;
-            }
             
             $bookingData = $BookingModel->createBooking($php_insert, 'booking', $bookingDataArray);
 
@@ -143,6 +136,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                     }
                     
+                    // Get patient data (only for stroke services)
+                    $patientName = $service['patient_name'] ?? null;
+                    $patientAge = isset($service['patient_age']) ? intval($service['patient_age']) : null;
+                    $patientGender = $service['patient_gender'] ?? null;
+                    $patientNotes = $service['patient_notes'] ?? null;
+                    
                     // Create ONE booking_details row per service
                     $detailData = [
                         'booking_id' => $bookingId,
@@ -152,7 +151,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'therapist_id' => $assignedTherapistId, // NULL if not assigned
                         'schedule_start' => $scheduleStart, // User selected date/time
                         'schedule_end' => $scheduleEnd, // Auto-calculated end time (1 hour later)
-                        'status' => 'Pending' // Default status
+                        'status' => 'Pending', // Default status
+                        'patient_name' => $patientName, // NULL for non-stroke services
+                        'patient_age' => $patientAge, // NULL for non-stroke services
+                        'patient_gender' => $patientGender, // NULL for non-stroke services
+                        'patient_notes' => $patientNotes // NULL for non-stroke services
                     ];
                     
                     error_log('========== BOOKING_DETAIL INSERT ATTEMPT ==========');
@@ -163,6 +166,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     error_log('Therapist ID: ' . ($assignedTherapistId ?? 'NULL'));
                     error_log('Schedule Start: ' . ($scheduleStart ?? 'NULL'));
                     error_log('Schedule End: ' . ($scheduleEnd ?? 'NULL'));
+                    error_log('Patient Name: ' . ($patientName ?? 'NULL'));
+                    error_log('Patient Age: ' . ($patientAge ?? 'NULL'));
+                    error_log('Patient Gender: ' . ($patientGender ?? 'NULL'));
+                    error_log('Patient Notes: ' . ($patientNotes ?? 'NULL'));
                     error_log('Detail Data Array:');
                     error_log(print_r($detailData, true));
                     

@@ -327,6 +327,16 @@ class BookingModel
         $curlError = curl_error($ch);
         curl_close($ch);
         
+        // Enhanced debugging - write to file
+        $debugInfo = "=== BOOKING_DETAIL INSERT DEBUG ===\n";
+        $debugInfo .= "Timestamp: " . date('Y-m-d H:i:s') . "\n";
+        $debugInfo .= "HTTP Code: $httpCode\n";
+        $debugInfo .= "Data Sent: " . json_encode($data, JSON_PRETTY_PRINT) . "\n";
+        $debugInfo .= "Response: $response\n";
+        $debugInfo .= "cURL Error: $curlError\n";
+        $debugInfo .= "=====================================\n\n";
+        file_put_contents(__DIR__ . '/../debug_booking_details.txt', $debugInfo, FILE_APPEND);
+        
         if ($curlError) {
             error_log('addBookingDetail cURL Error: ' . $curlError);
             return json_encode(['status' => 'error', 'message' => 'cURL Error: ' . $curlError, 'data' => $data]);

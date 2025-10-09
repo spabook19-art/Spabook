@@ -98,19 +98,6 @@
       </div>
     </div>
 
-    <!-- Date Started -->
-    <div class="mb-3">
-      <label for="patient-date-started" class="form-label fw-semibold">
-        <i class="bi bi-calendar-check me-1"></i>Treatment Start Date <span class="text-danger">*</span>
-      </label>
-      <input type="date" 
-             class="form-control" 
-             id="patient-date-started"
-             required>
-      <div class="form-text">Select the date when the treatment will begin</div>
-      <div class="invalid-feedback">Please select a treatment start date.</div>
-    </div>
-
     <!-- Additional Notes (Optional) -->
     <div class="mb-3">
       <label for="patient-notes" class="form-label fw-semibold">
@@ -157,10 +144,22 @@ function initializePatientInfoModal() {
         $('#patient-service-image').val(serviceData.image);
     }
 
-    // Set today as minimum date for date started
-    const today = new Date().toISOString().split('T')[0];
-    $('#patient-date-started').attr('min', today);
-    $('#patient-date-started').val(today);
+    // Load cached patient data if exists
+    const cachedPatientData = sessionStorage.getItem('patient_cache');
+    if (cachedPatientData) {
+        try {
+            const patientData = JSON.parse(cachedPatientData);
+            $('#patient-full-name').val(patientData.full_name || '');
+            $('#patient-age').val(patientData.age || '');
+            if (patientData.gender) {
+                $(`input[name="patient-gender"][value="${patientData.gender}"]`).prop('checked', true);
+            }
+            $('#patient-notes').val(patientData.notes || '');
+            console.log('✅ Loaded cached patient data');
+        } catch (e) {
+            console.error('❌ Error loading cached patient data:', e);
+        }
+    }
 }
 
 // Handle form submission (remove old handlers first to prevent duplicates)
@@ -189,7 +188,6 @@ $('#confirmPatientInfoBtn').off('click').on('click', function() {
         full_name: $('#patient-full-name').val().trim(),
         age: parseInt($('#patient-age').val()),
         gender: $('input[name="patient-gender"]:checked').val(),
-        date_started: $('#patient-date-started').val(),
         notes: $('#patient-notes').val().trim()
     };
 
@@ -202,90 +200,47 @@ $('#confirmPatientInfoBtn').off('click').on('click', function() {
         image: $('#patient-service-image').val()
     };
 
-    console.log('Patient data to save:', patientData);
+    console.log('Patient data to cache:', patientData);
 
-    // Disable button and show loading
-    const $btn = $(this);
-    const originalText = $btn.html();
-    $btn.prop('disabled', true).html('<i class="spinner-border spinner-border-sm me-1"></i>Saving...');
+    // Save patient data to sessionStorage (cache)
+    sessionStorage.setItem('patient_cache', JSON.stringify(patientData));
+    console.log('💾 Patient data cached to sessionStorage');
 
-    // Save patient information
-    $.ajax({
-        url: '../../controller/patient_contr.php',
-        type: 'POST',
-        dataType: 'json',
-        data: {
-            action: 'save_patient_info',
-            user_id: sessionStorage.getItem('user_id'),
-            full_name: patientData.full_name,
-            age: patientData.age,
-            gender: patientData.gender,
-            date_started: patientData.date_started,
-            notes: patientData.notes
-        },
-        success: function(response) {
-            console.log('✅ Patient info saved:', response);
-            
-            if (response.status === 'success') {
-                // Store patient ID for the booking
-                sessionStorage.setItem('temp_patient_id', response.patient_id);
-                console.log('💾 Stored patient_id:', response.patient_id);
-                
-                // Automatically add to cart for stroke services
-                const cartItem = {
-                    id: serviceData.id,
-                    name: serviceData.name,
-                    price: parseFloat(serviceData.price),
-                    description: serviceData.description,
-                    image: serviceData.image,
-                    people: 1, // Stroke services are always 1 person
-                    patient_id: response.patient_id
-                };
-                
-                // Add to global cart (window.serviceCart)
-                if (!window.serviceCart) {
-                    window.serviceCart = [];
-                }
-                window.serviceCart.push(cartItem);
-                
-                console.log('🛒 Added to cart:', cartItem);
-                console.log('🛒 Current cart:', window.serviceCart);
-                
-                // Update checkout badge if function exists
-                if (typeof window.updateCheckoutBadge === 'function') {
-                    window.updateCheckoutBadge();
-                }
-                
-                // Show success message and close modal
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Added to Cart!',
-                    text: 'Patient information saved and service added to cart.',
-                    timer: 2000,
-                    showConfirmButton: false
-                }).then(() => {
-                    // Close patient info modal
-                    $('#globalModal').modal('hide');
-                });
-                
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: response.message || 'Failed to save patient information.',
-                });
-                $btn.prop('disabled', false).html(originalText);
-            }
-        },
-        error: function(xhr, status, error) {
-            console.error('Error saving patient info:', {xhr, status, error});
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'An error occurred while saving patient information. Please try again.',
-            });
-            $btn.prop('disabled', false).html(originalText);
-        }
+    // Automatically add to cart for stroke services
+    const cartItem = {
+        id: serviceData.id,
+        name: serviceData.name,
+        price: parseFloat(serviceData.price),
+        description: serviceData.description,
+        image: serviceData.image,
+        people: 1, // Stroke services are always 1 person
+        patientData: patientData // Attach patient data to cart item
+    };
+    
+    // Add to global cart (window.serviceCart)
+    if (!window.serviceCart) {
+        window.serviceCart = [];
+    }
+    window.serviceCart.push(cartItem);
+    
+    console.log('🛒 Added to cart:', cartItem);
+    console.log('🛒 Current cart:', window.serviceCart);
+    
+    // Update checkout badge if function exists
+    if (typeof window.updateCheckoutBadge === 'function') {
+        window.updateCheckoutBadge();
+    }
+    
+    // Show success message and close modal
+    Swal.fire({
+        icon: 'success',
+        title: 'Added to Cart!',
+        text: 'Patient information saved and service added to cart.',
+        timer: 2000,
+        showConfirmButton: false
+    }).then(() => {
+        // Close patient info modal
+        $('#globalModal').modal('hide');
     });
 });
 

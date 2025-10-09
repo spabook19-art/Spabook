@@ -169,10 +169,41 @@ include_once '../../helper/admin_apps.php' ?>
       },
       dataType: 'json',
       success: function(response) {
+        // Update booking header info
         $('#user_name').text(response.user_name);
         $('#booking_id').text(`ID: ${response.bookingdetails_id}`);
         $('#booking_date').html(`<i class="bi bi-calendar me-1"></i> ${response.date_schedule} ${response.time_schedule}`);
         $('#total_price').html(`<i class="bi bi-currency-dollar me-1"></i> ₱${response.totalprice}`);
+        
+        // Check if this is a stroke treatment service
+        const serviceName = response.services_name || 'Unknown Service';
+        const isStrokeTreatment = serviceName.toLowerCase().includes('stroke') || 
+                                  serviceName.toLowerCase().includes('special treatment');
+        
+        // Hide both card templates first
+        $('#regular-service-card').hide();
+        $('#stroke-service-card').hide();
+        
+        // Show and populate the appropriate card
+        if (isStrokeTreatment) {
+          // Show stroke treatment card with progress tracking
+          const $strokeCard = $('#stroke-service-card');
+          $strokeCard.find('h6.fw-bold').first().text(serviceName);
+          $strokeCard.find('p.text-muted').first().text(response.service_description || 'Therapy focused on stroke recovery');
+          $strokeCard.find('.badge.bg-light:nth-child(1) span').text(response.service_duration || 'N/A');
+          $strokeCard.find('.badge.bg-light:nth-child(2) span').text(response.serviceprice || '0');
+          $strokeCard.find('.badge.bg-light:nth-child(3) span').text(`${response.date_schedule} ${response.time_schedule}`);
+          $strokeCard.show();
+        } else {
+          // Show regular service card
+          const $regularCard = $('#regular-service-card');
+          $regularCard.find('#service_name').text(serviceName);
+          $regularCard.find('#service_description').text(response.service_description || 'No description available');
+          $regularCard.find('#service_duration').text(response.service_duration || 'N/A');
+          $regularCard.find('#service_price').text(response.serviceprice || '0');
+          $regularCard.find('#service_schedule').text(`${response.date_schedule} ${response.time_schedule}`);
+          $regularCard.show();
+        }
       },
       error: function() {
         alert('❌ Network error. Please try again.');

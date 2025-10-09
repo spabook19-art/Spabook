@@ -611,31 +611,13 @@
      * Delete patient information from database if stored in session
      */
     function deletePatientInfoFromSession() {
-        const patientId = sessionStorage.getItem('temp_patient_id');
+        // Clear patient cache from sessionStorage
+        const patientCache = sessionStorage.getItem('patient_cache');
         
-        if (patientId) {
-            console.log('🗑️ Deleting patient info (ID: ' + patientId + ')...');
-            
-            $.ajax({
-                url: '../../controller/patient_contr.php',
-                type: 'POST',
-                data: {
-                    action: 'delete_patient_info',
-                    patient_id: patientId
-                },
-                dataType: 'json',
-                success: function(response) {
-                    if (response.status === 'success') {
-                        console.log('✅ Patient info deleted successfully');
-                        sessionStorage.removeItem('temp_patient_id');
-                    } else {
-                        console.error('❌ Failed to delete patient info:', response.message);
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.error('❌ Error deleting patient info:', error);
-                }
-            });
+        if (patientCache) {
+            console.log('🗑️ Clearing patient cache from sessionStorage...');
+            sessionStorage.removeItem('patient_cache');
+            console.log('✅ Patient cache cleared');
         }
     }
 </script>
