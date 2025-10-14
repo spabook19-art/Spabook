@@ -92,10 +92,12 @@ include_once '../../helper/admin_apps.php' ?>
           let btn = ``;
           if (row.booking_status === 'Confirmed') {
             btn = `<button class="btn btn-primary btn-sm px-3" onclick="manageBooking('${row.bookingdetailsid}');"><i class="bi bi-list-check me-1"></i>Services</button>
+                   <button class="btn btn-info btn-sm px-3" onclick="rescheduleBooking('${row.bookingdetailsid}');"><i class="bi bi-calendar-event me-1"></i>Reschedule</button>
                    <button class="btn btn-warning btn-sm px-3" onclick="proceedBooking('${row.bookingdetailsid}');"><i class="bi bi-arrow-right-circle me-1"></i> Proceed</button>
                   `;
           } else {
             btn = `<button class="btn btn-primary btn-sm px-3" onclick="manageBooking('${row.bookingdetailsid}');"><i class="bi bi-list-check me-1"></i>Services</button>
+                   <button class="btn btn-info btn-sm px-3" onclick="rescheduleBooking('${row.bookingdetailsid}');"><i class="bi bi-calendar-event me-1"></i>Reschedule</button>
                    <button class="btn btn-success btn-sm px-3" onclick="completeBooking('${row.bookingdetailsid}');"><i class="bi bi-check-circle me-1"></i>Complete</button>`;
           }
 
@@ -124,7 +126,7 @@ include_once '../../helper/admin_apps.php' ?>
                   </div>
                 </div>
                 <!-- Actions -->
-                <div class="col-auto d-flex gap-2">
+                <div class="col-auto d-flex flex-column flex-md-row gap-2">
                 ${btn}
                 </div>
               </div>
@@ -207,6 +209,61 @@ include_once '../../helper/admin_apps.php' ?>
       }
     });
 
+  }
+
+  function rescheduleBooking(bookingdetailsid) {
+    console.log('📅 Opening reschedule modal for booking:', bookingdetailsid);
+    showGlobalModal('../../views/modal/admin_modal-reschedule.php');
+    
+    // Fetch current booking details to populate the form
+    $.ajax({
+      url: '../../controller/admin_dashboard_contr.php',
+      type: 'POST',
+      data: {
+        action: 'get_booking_details',
+        bookingdetailsid: bookingdetailsid
+      },
+      dataType: 'json',
+      success: function(response) {
+        // Set the booking ID in the hidden field
+        $('#reschedule_booking_id').val(bookingdetailsid);
+        
+        // Parse the current date and time from the response
+        const scheduleStart = response.schedule_start || new Date().toISOString();
+        const dateObj = new Date(scheduleStart);
+        
+        // Format date as YYYY-MM-DD for input
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        const dateString = `${year}-${month}-${day}`;
+        
+        // Format time as HH:MM for input
+        const hours = String(dateObj.getHours()).padStart(2, '0');
+        const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+        const timeString = `${hours}:${minutes}`;
+        
+        // Set the form values
+        $('#reschedule_date').val(dateString);
+        $('#reschedule_time').val(timeString);
+        
+        // Show booking information
+        $('#reschedule_user_name').text(response.user_name || 'Unknown');
+        $('#reschedule_service_name').text(response.services_name || 'Unknown Service');
+        
+        // Display current schedule
+        let currentSchedule = 'Not Set';
+        if (response.date_schedule && response.time_schedule) {
+          currentSchedule = `${response.date_schedule} at ${response.time_schedule}`;
+        } else if (response.date_schedule) {
+          currentSchedule = response.date_schedule;
+        }
+        $('#reschedule_current_date').text(currentSchedule);
+      },
+      error: function() {
+        alert('❌ Failed to load booking details. Please try again.');
+      }
+    });
   }
 
   // $(document).ready(function() {

@@ -286,11 +286,26 @@ class Admin
                 $serviceDuration = $service['per_minute'] ?? 'Unknown Service';
                 $servicePrice = $service['price'] ?? 'Unknown Service';
 
+                // Format schedule dates properly
+                $scheduleStart = $details['schedule_start'] ?? null;
+                $dateSchedule = 'Not Set';
+                $timeSchedule = '';
+                
+                if ($scheduleStart) {
+                    $timestamp = strtotime($scheduleStart);
+                    if ($timestamp !== false) {
+                        $dateSchedule = date('M d, Y', $timestamp);
+                        $timeSchedule = date('g:i A', $timestamp);
+                    }
+                }
+                
                 $result = [
                     'booking_id'     => $details['bookingdetailsid'],
                     'bookingdetails_id'     => $details['bookingdetails_id'],
-                    'date_schedule'   => date('M d, Y ', strtotime($details['schedule_start']) ?? ''),
-                    'time_schedule'   => date('g:i A', strtotime($details['schedule_start']) ?? ''),
+                    'date_schedule'   => $dateSchedule,
+                    'time_schedule'   => $timeSchedule,
+                    'schedule_start'  => $scheduleStart,
+                    'schedule_end'    => $details['schedule_end'] ?? null,
                     'booking_status' => $details['status'] ?? '',
                     'totalprice'     => $details['price'] ?? 0,
                     'quantity'       => $details['quantity'] ?? 0,
@@ -359,6 +374,38 @@ class Admin
         return json_encode([
             'status' => 'success',
             'message' => 'Booking request accepted successfully.'
+        ]);
+    }
+
+    public function rescheduleBooking($php_update, $bookingdetailsid, $schedule_start, $schedule_end, $reason, $current_datetimestamp)
+    {
+        // Update booking_details with new schedule
+        $updateData = [
+            'schedule_start' => $schedule_start,
+            'schedule_end' => $schedule_end,
+            'date_modified' => $current_datetimestamp
+        ];
+
+        $filters = [
+            'bookingdetailsid' => $bookingdetailsid
+        ];
+
+        $updateResult = $php_update('booking_details', $updateData, $filters);
+
+        if (isset($updateResult['error'])) {
+            return json_encode([
+                'status' => 'error',
+                'message' => 'Failed to reschedule booking: ' . $updateResult['error']
+            ]);
+        }
+
+        return json_encode([
+            'status' => 'success',
+            'message' => 'Booking rescheduled successfully.',
+            'new_schedule' => [
+                'start' => $schedule_start,
+                'end' => $schedule_end
+            ]
         ]);
     }
 
