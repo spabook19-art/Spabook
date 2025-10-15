@@ -65,6 +65,27 @@ class BookingModel
         return $imageData;
     }
 
+    // Helper method to format datetime from ISO 8601 to readable format
+    private function formatDateTime($dateTime)
+    {
+        if (!$dateTime) {
+            return null;
+        }
+
+        try {
+            // Parse ISO 8601 format (e.g., "2025-10-03T17:00:27.244088")
+            $timestamp = strtotime($dateTime);
+            if ($timestamp === false) {
+                return $dateTime; // Return original if parsing fails
+            }
+            
+            // Format as "Y-m-d H:i" (e.g., "2025-10-03 17:00")
+            return date('Y-m-d H:i', $timestamp);
+        } catch (Exception $e) {
+            return $dateTime; // Return original if error occurs
+        }
+    }
+
     public function processBookings($bookings, $php_fetch)
     {
         $result = [];
@@ -241,26 +262,27 @@ class BookingModel
                 $booking_details = $php_fetch('booking_details', '*', ['booking_id' => $booking['bookingid']]);
 
                 if ($booking_details) {
-                    $services = [];
-                    $total_amount = 0;
-                    
+                    // Return one row per service (from booking_details)
                     foreach ($booking_details as $detail) {
                         $service = $php_fetch('services', 'service_name', ['id' => $detail['service_id']]);
                         if ($service && count($service) > 0) {
-                            $services[] = $service[0]['service_name'];
-                            $total_amount += $detail['price'] * $detail['quantity'];
+                            $result[] = [
+                                'bookingid' => $booking['bookingid'],
+                                'bookingdetailsid' => $detail['bookingdetailsid'],
+                                'service_name' => $service[0]['service_name'],
+                                'quantity' => $detail['quantity'],
+                                'status' => $detail['status'] ?? 'Pending', // Get status from booking_details
+                                'booking_date' => $this->formatDateTime($booking['date_created']),
+                                'schedule_start' => $this->formatDateTime($detail['schedule_start'] ?? null),
+                                'schedule_end' => $this->formatDateTime($detail['schedule_end'] ?? null),
+                                'price' => $detail['price'],
+                                'total_amount' => $detail['price'] * $detail['quantity'],
+                                'payment_status' => $booking['payment_status'] ?? false,
+                                'therapist_id' => $detail['therapist_id'] ?? null,
+                                'patient_name' => $detail['patient_name'] ?? null
+                            ];
                         }
                     }
-
-                    $result[] = [
-                        'bookingid' => $booking['bookingid'],
-                        'services' => implode(', ', $services),
-                        'service_count' => count($services),
-                        'status' => $booking['booking_status'],
-                        'booking_date' => $booking['date_created'],
-                        'total_amount' => $total_amount,
-                        'payment_status' => $booking['payment_status'] ?? false
-                    ];
                 }
             }
 
@@ -397,23 +419,34 @@ class BookingModel
                 $result = [];
                 
                 foreach ($bookings as $booking) {
-                    // Only include active bookings (not completed, cancelled, or rejected)
-                    $status = strtolower($booking['booking_status']);
+                    // Get all booking details (services) for this booking
+                    $booking_details = $php_fetch($booking_details_table, '*', ['booking_id' => $booking['bookingid']]);
                     
-                    if (!in_array($status, ['completed', 'cancelled', 'rejected'])) {
-                        // Get count of services in this booking (from booking_details)
-                        $booking_details = $php_fetch($booking_details_table, '*', ['booking_id' => $booking['bookingid']]);
-                        $service_count = $booking_details ? count($booking_details) : 0;
-                        
-                        // Return ONE row per booking with data from booking table only
-                        $result[] = [
-                            'bookingid' => $booking['bookingid'],
-                            'status' => $booking['booking_status'],
-                            'booking_date' => $booking['date_created'],
-                            'total_amount' => $booking['total_price'], // From booking table
-                            'service_count' => $service_count,
-                            'payment_status' => $booking['payment_status']
-                        ];
+                    if ($booking_details) {
+                        foreach ($booking_details as $detail) {
+                            // Only include active services (not completed, cancelled, or rejected)
+                            $status = strtolower($detail['status'] ?? 'pending');
+                            
+                            if (!in_array($status, ['completed', 'cancelled', 'rejected'])) {
+                                // Get service name
+                                $service = $php_fetch($services_table, 'service_name', ['id' => $detail['service_id']]);
+                                
+                                // Return ONE row per service with status from booking_details
+                                $result[] = [
+                                    'bookingid' => $booking['bookingid'],
+                                    'bookingdetailsid' => $detail['bookingdetailsid'],
+                                    'service_name' => $service && count($service) > 0 ? $service[0]['service_name'] : 'Unknown Service',
+                                    'status' => $detail['status'] ?? 'Pending', // From booking_details
+                                    'booking_date' => $this->formatDateTime($booking['date_created']),
+                                    'schedule_start' => $this->formatDateTime($detail['schedule_start'] ?? null),
+                                    'schedule_end' => $this->formatDateTime($detail['schedule_end'] ?? null),
+                                    'quantity' => $detail['quantity'],
+                                    'price' => $detail['price'],
+                                    'total_amount' => $detail['price'] * $detail['quantity'],
+                                    'payment_status' => $booking['payment_status']
+                                ];
+                            }
+                        }
                     }
                 }
                 
@@ -430,8 +463,8 @@ class BookingModel
     public function getUserRecentServices($php_fetch, $bookings_table, $booking_details_table, $services_table, $user_id)
     {
         try {
-            // Get all completed bookings
-            $bookings = $php_fetch($bookings_table, '*', ['user_id' => $user_id, 'booking_status' => 'Completed']);
+            // Get all bookings for this user
+            $bookings = $php_fetch($bookings_table, '*', ['user_id' => $user_id]);
 
             if (!$bookings || count($bookings) === 0) {
                 return json_encode('nodata');
@@ -444,16 +477,23 @@ class BookingModel
 
                 if ($booking_details) {
                     foreach ($booking_details as $detail) {
-                        $service = $php_fetch($services_table, 'service_name', ['id' => $detail['service_id']]);
-                        if ($service && count($service) > 0) {
-                            $result[] = [
-                                'bookingid' => $booking['bookingid'],
-                                'service_name' => $service[0]['service_name'],
-                                'status' => $booking['booking_status'],
-                                'booking_date' => $booking['date_created'],
-                                'total_amount' => $detail['price'] * $detail['quantity'],
-                                'quantity' => $detail['quantity']
-                            ];
+                        // Only include completed services from booking_details
+                        $detailStatus = strtolower($detail['status'] ?? '');
+                        if ($detailStatus === 'completed') {
+                            $service = $php_fetch($services_table, 'service_name', ['id' => $detail['service_id']]);
+                            if ($service && count($service) > 0) {
+                                $result[] = [
+                                    'bookingid' => $booking['bookingid'],
+                                    'bookingdetailsid' => $detail['bookingdetailsid'],
+                                    'service_name' => $service[0]['service_name'],
+                                    'status' => $detail['status'], // From booking_details
+                                    'booking_date' => $this->formatDateTime($booking['date_created']),
+                                    'schedule_start' => $this->formatDateTime($detail['schedule_start'] ?? null),
+                                    'schedule_end' => $this->formatDateTime($detail['schedule_end'] ?? null),
+                                    'total_amount' => $detail['price'] * $detail['quantity'],
+                                    'quantity' => $detail['quantity']
+                                ];
+                            }
                         }
                     }
                 }

@@ -550,6 +550,139 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             break;
 
+        case 'get_sales_data':
+            try {
+                // Get all completed booking details with customer and service information
+                $query = "SELECT 
+                            bd.bookingdetailsid,
+                            bd.booking_id,
+                            bd.quantity,
+                            bd.price,
+                            (bd.quantity * bd.price) as total_amount,
+                            bd.status,
+                            bd.schedule_start,
+                            b.date_created,
+                            b.booking_status,
+                            b.payment_status,
+                            CONCAT(u.first_name, ' ', u.last_name) as customer_name,
+                            s.service_name
+                          FROM booking_details bd
+                          JOIN booking b ON b.bookingid = bd.booking_id
+                          JOIN users u ON u.user_id = b.user_id
+                          JOIN services s ON s.id = bd.service_id
+                          WHERE bd.status = 'Completed'
+                          ORDER BY b.date_created DESC";
+                $sales = $php_fetch($query);
+
+                // Calculate totals
+                $totalSales = 0;
+                $bookingIds = [];
+                
+                foreach ($sales as &$sale) {
+                    $saleAmount = $sale['quantity'] * $sale['price'];
+                    $totalSales += $saleAmount;
+                    $sale['total_amount'] = $saleAmount;
+                    
+                    // Track unique booking IDs
+                    if (!in_array($sale['booking_id'], $bookingIds)) {
+                        $bookingIds[] = $sale['booking_id'];
+                    }
+                    
+                    // Format dates
+                    $sale['date_created'] = date('Y-m-d H:i', strtotime($sale['date_created']));
+                    if ($sale['schedule_start']) {
+                        $sale['schedule_start'] = date('Y-m-d H:i', strtotime($sale['schedule_start']));
+                    }
+                }
+
+                $totalBookings = count($bookingIds);
+
+                // Calculate total commission from booking_details with assigned therapists
+                // Commission = Number of hours * ₱50 per hour (assuming 1 hour per service)
+                $commQuery = "SELECT COALESCE(COUNT(*), 0) as total_services_with_therapist
+                             FROM booking_details
+                             WHERE therapist_id IS NOT NULL 
+                             AND status = 'Completed'";
+                $commRes = $php_fetch($commQuery);
+                $servicesWithTherapist = $commRes[0]['total_services_with_therapist'] ?? 0;
+                $totalCommission = $servicesWithTherapist * 50; // ₱50 per hour
+
+                $netRevenue = $totalSales - $totalCommission;
+
+                response([
+                    'status' => 'success',
+                    'total_sales' => (float)$totalSales,
+                    'total_bookings' => $totalBookings,
+                    'net_revenue' => (float)$netRevenue,
+                    'sales' => $sales
+                ]);
+            } catch (Exception $e) {
+                error_log("Error in get_sales_data: " . $e->getMessage());
+                response(['status' => 'error', 'message' => $e->getMessage()]);
+            }
+            break;
+
+        case 'get_commission_data':
+            try {
+                // Get all completed booking details with assigned therapists (commissions based on completed services)
+                $query = "SELECT 
+                            bd.bookingdetailsid,
+                            bd.booking_id,
+                            bd.schedule_start,
+                            bd.schedule_end,
+                            bd.status,
+                            CONCAT(u.first_name, ' ', u.last_name) as therapist_name,
+                            s.service_name,
+                            EXTRACT(EPOCH FROM (bd.schedule_end - bd.schedule_start))/3600 as hours_logged
+                          FROM booking_details bd
+                          JOIN users u ON u.user_id = bd.therapist_id
+                          JOIN services s ON s.id = bd.service_id
+                          WHERE bd.therapist_id IS NOT NULL
+                          AND bd.status = 'Completed'
+                          ORDER BY bd.schedule_start DESC";
+                $commissions = $php_fetch($query);
+
+                // Calculate totals
+                $totalCommission = 0;
+                $totalHours = 0;
+                $commissionRate = 50; // ₱50 per hour
+
+                foreach ($commissions as &$comm) {
+                    // Calculate hours if not already set
+                    if (!isset($comm['hours_logged']) || $comm['hours_logged'] == null) {
+                        // Default to 1 hour if schedule times are not set
+                        $comm['hours_logged'] = 1;
+                    } else {
+                        $comm['hours_logged'] = round((float)$comm['hours_logged'], 2);
+                    }
+                    
+                    // Calculate commission amount
+                    $comm['commission_amount'] = $comm['hours_logged'] * $commissionRate;
+                    
+                    $totalHours += $comm['hours_logged'];
+                    $totalCommission += $comm['commission_amount'];
+                    
+                    // Format date
+                    if ($comm['schedule_start']) {
+                        $comm['date'] = date('Y-m-d H:i', strtotime($comm['schedule_start']));
+                    } else {
+                        $comm['date'] = 'N/A';
+                    }
+                }
+
+                response([
+                    'status' => 'success',
+                    'total_commission' => (float)$totalCommission,
+                    'total_hours' => (float)$totalHours,
+                    'commission_rate' => $commissionRate,
+                    'commissions' => $commissions
+                ]);
+            } catch (Exception $e) {
+                error_log("Error in get_commission_data: " . $e->getMessage());
+                response(['status' => 'error', 'message' => $e->getMessage()]);
+            }
+            break;
+
         // case 'get_booking_services':
         //     $bookingid = $_POST['bookingid'] ?? null;
         //     if (!$bookingid) {

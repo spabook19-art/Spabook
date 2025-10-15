@@ -28,9 +28,6 @@
                             </ul>
                         </div>
                     </div>
-                    <button class="btn" style="background: none;">
-                        <i class="pe-2 bi bi-person-square fs-5"></i>Admin
-                    </button>
                 </div>
             </nav>
             <div class="app_content_body">

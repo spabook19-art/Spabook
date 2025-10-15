@@ -407,6 +407,36 @@ class Admin
             'message' => 'Booking status updated successfully.'
         ]);
     }
+
+
+    public function rescheduleBooking($php_update, $bookingdetailsid, $schedule_start, $schedule_end, $reason, $current_datetimestamp)
+    {
+        // Update booking_details schedule_start and schedule_end for the given bookingdetailsid
+        $updateData = [
+            'schedule_start' => $schedule_start,
+            'schedule_end' => $schedule_end,
+            'reschedule_reason' => $reason,
+            'date_modified' => $current_datetimestamp
+        ];
+
+        $filters = [
+            'bookingdetailsid' => $bookingdetailsid
+        ];
+
+        $updateResult = $php_update('booking_details',  $updateData, $filters);
+
+        if (isset($updateResult['error'])) {
+            return json_encode([
+                'status' => 'error',
+                'message' => 'Failed to reschedule booking: ' . $updateResult['error']
+            ]);
+        }
+
+        return json_encode([
+            'status' => 'success',
+            'message' => 'Booking rescheduled successfully.'
+        ]);
+    }
     //! ============================================================ ADMIN SECTION END ============================================================
 
 }

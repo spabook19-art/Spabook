@@ -60,6 +60,12 @@ if (isset($_POST['action'])) {
             $bookingdetailsid = trim($_POST['bookingdetailsid']);
             $new_status = trim($_POST['new_status']);
             echo $Admin->updateBookingStatus($php_update, $bookingdetailsid, $new_status, $current_datetimestamp);
+        case 'reschedule_booking':
+            $bookingdetailsid = trim($_POST['bookingdetailsid']);
+            $schedule_start = trim($_POST['schedule_start']);
+            $schedule_end = trim($_POST['schedule_end']);
+            $reason = isset($_POST['reason']) ? trim($_POST['reason']) : null;
+            echo $Admin->rescheduleBooking($php_update, $bookingdetailsid, $schedule_start, $schedule_end, $reason, $current_datetimestamp);
             break;
     }
 }
