@@ -23,6 +23,12 @@ class Admin
         ]);
         $pendingBookingsCount = $pendingBookings[0]['count'] ?? 0;
 
+        // Get pending bookings count
+        $ongoingBookings = $php_fetch('booking_details', 'COUNT(*) as count', [
+            'status' => ['On-Going']
+        ]);
+        $ongoingBookingsCount = $ongoingBookings[0]['count'] ?? 0;
+
         // Get completed appointments
         $completedBookings = $php_fetch('booking_details', 'COUNT(*) as count', [
             'status' => 'Completed'
@@ -50,7 +56,8 @@ class Admin
                 'completed_bookings'  => $completedBookingsCount,
                 'cancelled_bookings'  => $cancelledBookingsCount,
                 'recovery_rate'       => $recoveryRate,
-                'recovery_count'      => $completedBookingsCount
+                'recovery_count'      => $completedBookingsCount,
+                'ongoing_bookings'    => $ongoingBookingsCount
             ]
         ];
 
@@ -216,17 +223,16 @@ class Admin
         ]);
     }
 
-        public function loadBookingRequests($php_fetch,$status)
+    public function loadBookingRequests($php_fetch, $status)
     {
         $result = [];
-        $filter = $status === 'Request' ? 'Pending' : ['Confirmed', 'On-Going'];
 
         // Fetch bookings with joins
         $bookings = $php_fetch(
             'booking',
             'bookingid, users(profile_picture, full_name), booking_details(bookingdetailsid, bookingdetails_id, status, price, date_modified, services(service_name))',
             [
-                'booking_details.status' => $filter
+                'booking_details.status' => $status
             ],
         );
 
@@ -362,6 +368,45 @@ class Admin
         ]);
     }
 
+
+    public function updateBookingStatus($php_update, $bookingdetailsid, $new_status, $current_datetimestamp)
+    {
+        // Update booking_details status to the new status for the given bookingdetailsid
+        // if ($new_status == 'On-Going') {
+        //     $updateData = [
+        //         'status' => $new_status,
+        //         'date_modified' => $current_datetimestamp
+        //     ];
+        // } else {
+        //     $updateData = [
+        //         'status' => $new_status,
+        //         'date_modified' => $current_datetimestamp
+        //     ];
+        // }
+        $updateData = [
+            'status' => $new_status,
+            'date_modified' => $current_datetimestamp
+        ];
+
+
+        $filters = [
+            'bookingdetailsid' => $bookingdetailsid
+        ];
+
+        $updateResult = $php_update('booking_details',  $updateData, $filters);
+
+        if (isset($updateResult['error'])) {
+            return json_encode([
+                'status' => 'error',
+                'message' => 'Failed to update booking status: ' . $updateResult['error']
+            ]);
+        }
+
+        return json_encode([
+            'status' => 'success',
+            'message' => 'Booking status updated successfully.'
+        ]);
+    }
     //! ============================================================ ADMIN SECTION END ============================================================
 
 }

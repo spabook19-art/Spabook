@@ -8,7 +8,7 @@
         <button class="btn app_open_sidebar_btn" type="button">
           <span class="navbar-toggler-icon"></span>
         </button>
-        <span class="app_content_title fs-25 fw-bold pe-2">Booking Request</span>
+        <span class="app_content_title fs-25 fw-bold pe-2">Booking</span>
         <div class="ms-auto d-flex align-items-center">
           <!-- Notification Bell with Dropdown -->
           <div class="dropdown" id="notificationDropdownWrapper">
@@ -35,10 +35,122 @@
       </nav>
       <div class="app_content_body">
         <!-- Booking requests will be loaded here dynamically -->
+        <div class="row row-cols-1 row-cols-md-3 row-cols-sm-3 row-cols-sm-3 row-cols-lg-3 row-cols-xl-5 g-3">
+
+          <!-- Pending -->
+          <div class="col">
+            <div class="card shadow-sm border-0 rounded-4 text-warning bg-light-subtle active" style="cursor:pointer;" onclick="loadTableNavigation('Pending')">
+              <div class="card-body py-4 px-3">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="fw-bold text-warning mb-1">PENDING</h6>
+                    <h3 class="fw-bold mb-0" id="pending_count">0</h3>
+                  </div>
+                  <div class="fs-1">
+                    <i class="fa-solid fa-hourglass-half text-warning"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Accepted -->
+          <div class="col">
+            <div class="card shadow-sm border-0 rounded-4 text-primary bg-light-subtle" style="cursor:pointer;" onclick="loadTableNavigation('Confirmed')">
+              <div class="card-body py-4 px-3">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="fw-bold text-primary mb-1">ACCEPTED</h6>
+                    <h3 class="fw-bold mb-0" id="accepted_count">0</h3>
+                  </div>
+                  <div class="fs-1">
+                    <i class="fa-solid fa-thumbs-up text-primary"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- On Going -->
+          <div class="col">
+            <div class="card shadow-sm border-0 rounded-4 text-info bg-light-subtle" style="cursor:pointer;" onclick="loadTableNavigation('On-Going')">
+              <div class="card-body py-4 px-3">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="fw-bold text-info mb-1">ON GOING</h6>
+                    <h3 class="fw-bold mb-0" id="ongoing_count">0</h3>
+                  </div>
+                  <div class="fs-1">
+                    <i class="fa-solid fa-spinner text-info"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+          <!-- Completed -->
+          <div class="col">
+            <div class="card shadow-sm border-0 rounded-4 text-success bg-light-subtle" style="cursor:pointer;" onclick="loadTableNavigation('Completed')">
+              <div class="card-body py-4 px-3">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="fw-bold text-success mb-1">COMPLETED</h6>
+                    <h3 class="fw-bold mb-0" id="completed_count">0</h3>
+                  </div>
+                  <div class="fs-1">
+                    <i class="fa-solid fa-circle-check text-success"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cancelled -->
+          <div class="col">
+            <div class="card shadow-sm border-0 rounded-4 text-danger bg-light-subtle" style="cursor:pointer;" onclick="loadTableNavigation('Cancelled')">
+              <div class="card-body py-4 px-3">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="fw-bold text-danger mb-1">CANCELLED</h6>
+                    <h3 class="fw-bold mb-0" id="cancelled_count">0</h3>
+                  </div>
+                  <div class="fs-1">
+                    <i class="fa-solid fa-ban text-danger"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
         <div class="p-3">
-          <table id="bookingRequestTable" style="width:100%;">
-            <tbody></tbody>
-          </table>
+          <div class="table-responsive" id="pending_table">
+            <table id="bookingPendingTable" style="width:100%;">
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="table-responsive" id="confirmed_table">
+            <table id="bookingConfirmedTable" style="width:100%;">
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="table-responsive" id="ongoing_table">
+            <table id="bookingOngoingtable" style="width:100%;">
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="table-responsive" id="cancelled_table">
+            <table id="bookingCancelledTable" style="width:100%;">
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="table-responsive" id="completedtable">
+            <table id="bookingCompletedTable" style="width:100%;">
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
 
       </div>
@@ -54,48 +166,90 @@ include_once '../../helper/admin_apps.php' ?>
     $('#admin_booking_request').addClass('active');
   }, 500);
 
-  loadBookingRequests();
+  // Load default tab on page load
+  loadTableNavigation('Pending');
+  loadBookingCounts();
 
-  function loadBookingRequests() {
-    if ($.fn.DataTable.isDataTable('#bookingRequestTable')) {
-      $('#bookingRequestTable').DataTable().clear().destroy();
+  function loadTableNavigation(status) {
+    // Hide all tables first
+    $('#pending_table, #confirmed_table, #ongoing_table, #cancelled_table, #completedtable').hide();
+
+    // Decide which table to show based on status
+    let targetTable = null;
+    let showtable = null;
+    switch (status) {
+      case 'Pending':
+        showtable = '#pending_table';
+        targetTable = '#bookingPendingTable';
+        break;
+      case 'Confirmed':
+        showtable = '#confirmed_table';
+        targetTable = '#bookingConfirmedTable';
+        break;
+      case 'On-Going':
+        showtable = '#ongoing_table';
+        targetTable = '#bookingOngoingtable';
+        break;
+      case 'Cancelled':
+        showtable = '#cancelled_table';
+        targetTable = '#bookingCancelledTable';
+        break;
+      case 'Completed':
+        showtable = '#completedtable';
+        targetTable = '#bookingCompletedTable';
+        break;
     }
-    // $.ajax({
-    //   url: '../../controller/admin_dashboard_contr.php',
-    //   type: 'POST',
-    //   dataType: 'json',
-    //   data: {
-    //     action: 'load_booking_requests',
-    //     status: 'Request'
-    //   },
-    //   success: function(response) {
-    //     console.log('Initial booking requests load:', response);
-    //   }
 
-    // });
+    if (showtable) {
+      $(showtable).show();
+      loadBookingRequests(status, targetTable);
+    }
+  }
 
-    let booking_request_table = $('#bookingRequestTable').DataTable({
+  function loadBookingRequests(status, tableSelector) {
+    // Destroy previous DataTable instance on the same table
+    if ($.fn.DataTable.isDataTable(tableSelector)) {
+      $(tableSelector).DataTable().clear().destroy();
+    }
+
+    // Initialize DataTable for that specific table
+    let booking_request_table = $(tableSelector).DataTable({
       ajax: {
         url: '../../controller/admin_dashboard_contr.php',
         type: 'POST',
         dataType: 'json',
         data: {
           action: 'load_booking_requests',
-          status: 'Request'
+          status: status
         },
+        // beforeSend: function() {
+        //   Swal.fire({
+        //     position: 'center',
+        //     html: '<div class="mb-3"><img src="../../vendor/images/loadingspabook.gif" height="180" width="180"/></div><div><span class="fw-bold">Loading...</span></div>',
+        //     heightAuto: false,
+        //     showConfirmButton: false,
+        //     allowOutsideClick: false
+        //   });
+        // },
+        // complete: function() {
+        //   Swal.close();
+        // },
         dataSrc: function(json) {
+          // If no data returned, show a clean "No Data" message
           if (!json || json.length === 0) {
-            $('#bookingRequestTable').html(`
-                <div class="card shadow-sm border rounded-3 mb-3">
-                  <div class="card-body text-center p-4">
-                    <i class="bi bi-inbox" style="font-size: 3rem; color: #6c757d;"></i>
-                    <h5 class="mt-3 text-muted">No Booking Requests</h5>
-                    <p class="text-muted">There are no pending booking requests at the moment.</p>
-                  </div>
-                </div>
-              `);
-          } else {
-            console.log('✅ Displaying ' + json.length + ' booking requests');
+            const noDataHTML = `
+            <div class="card shadow-sm border rounded-3 my-4">
+              <div class="card-body text-center p-4">
+                <i class="bi bi-inbox" style="font-size:3rem; color:#6c757d;"></i>
+                <h5 class="mt-3 text-muted">No ${status} Bookings Found</h5>
+                <p class="text-muted small mb-0">There are currently no records for this status.</p>
+              </div>
+            </div>
+          `;
+
+            // Target the correct table container
+            $(tableSelector).html(noDataHTML);
+            return [];
           }
           return json;
         },
@@ -115,15 +269,36 @@ include_once '../../helper/admin_apps.php' ?>
             `<img src="${row.profile_picture}" alt="Profile" class="rounded-circle" style="width:72px; height:72px; object-fit:cover;">` :
             `<i class="bi bi-person-circle user-avatar" style="font-size:4.5rem; min-height:72px; min-width:72px; display:flex; align-items:center; justify-content:center;"></i>`;
 
+          // Determine action buttons dynamically based on status
+          let actions = '';
+          switch (status) {
+            case 'Pending':
+              actions += `
+                <button class="btn btn-success btn-sm px-3" onclick="updateStatus('Confirmed','${row.bookingdetailsid}');">Accept</button>
+                <button class="btn btn-secondary btn-sm px-3" onclick="updateStatus('Cancelled','${row.bookingdetailsid}');">Decline</button>`;
+              break;
+            case 'Confirmed':
+              actions += `<button class="btn btn-warning btn-sm px-3" onclick="updateStatus('On-Going','${row.bookingdetailsid}');">Proceed</button>`;
+              break;
+            case 'On-Going':
+              actions += `<button class="btn btn-primary btn-sm px-3" onclick="updateBooking('${row.bookingdetailsid}');">Update</button>
+              <button class="btn btn-success btn-sm px-3" onclick="updateStatus('Completed','${row.bookingdetailsid}');">Completed</button>`;
+              break;
+            case 'Completed':
+              actions += `<button class="btn btn-primary btn-sm px-3" onclick="viewBookingDetails('${row.bookingdetailsid}');">View</button>`;
+              break;
+            case 'Cancelled':
+              actions += `<button class="btn btn-outline-secondary btn-sm px-3" onclick="updateStatus('Pending','${row.bookingdetailsid}');">Restore</button>`;
+              break;
+          }
+
           return `
             <div class="card shadow-sm border rounded-3 mb-3">
               <div class="card-body">
                 <div class="row g-3 align-items-center">
-                  <!-- Image -->
                   <div class="col-auto d-flex align-items-center justify-content-center">
                     ${profileImage}
                   </div>
-                  <!-- Info -->
                   <div class="col">
                     <div class="fw-semibold user-name">${row.user_name}</div>
                     <div class="small text-muted mb-1">Booking ID: #${row.bookingdetails_id}</div>
@@ -139,11 +314,8 @@ include_once '../../helper/admin_apps.php' ?>
                       </span>
                     </div>
                   </div>
-                  <!-- Actions -->
                   <div class="col-auto d-flex gap-2">
-                    <button class="btn btn-primary btn-sm  px-3" onclick="viewBookingDetails('${row.bookingdetailsid}');">View</button>
-                    <button class="btn btn-secondary btn-sm  px-3" onclick="declineRequest('${row.bookingdetailsid}');">Decline</button>
-                    <button class="btn btn-success btn-sm  px-3" onclick="acceptRequest('${row.bookingdetailsid}');">Accept</button>
+                    ${actions}
                   </div>
                 </div>
               </div>
@@ -151,25 +323,48 @@ include_once '../../helper/admin_apps.php' ?>
         }
       }],
       paging: true,
-      pageLength: 5,
+      pageLength: 4,
       searching: true,
       ordering: false,
       info: false,
-      dom: '<"top"f>rt<"bottom"p>',
+      dom: '<"top"f>rt<"bottom"p>'
     });
+
+    // Tooltip + auto refresh
     booking_request_table.on('draw', function() {
-      setTimeout(function() {
-        $('[data-bs-toggle="tooltip"]').tooltip(); //* ======== Initialize tooltip ========
-        $('[id^="tooltip"]').remove(); //* ======== Remove tooltip every table draw ========
-        $('[data-bs-toggle="tooltip"]').on('click', function() { //* ======= Hide tooltip upon click =======
-          $(this).tooltip('hide');
-        });
-      }, 1000);
+      $('[data-bs-toggle="tooltip"]').tooltip();
     });
-    setInterval(function() {
-      booking_request_table.ajax.reload(null, false); //* ======= Reload Table Data Every X seconds with pagination retained =======
-    }, 30000);
+
+    setInterval(() => booking_request_table.ajax.reload(null, false), 30000);
   }
+
+
+  function loadBookingCounts() {
+    $.ajax({
+      url: '../../controller/admin_dashboard_contr.php',
+      type: 'POST',
+      dataType: 'json',
+      data: {
+        action: 'get_dashboard_stats'
+      },
+      success: result => {
+        $('#pending_count').text(result.data.pending_bookings || 0);
+        $('#accepted_count').text(result.data.accepted_bookings || 0);
+        $('#ongoing_count').text(result.data.ongoing_bookings || 0);
+        $('#completed_count').text(result.data.completed_bookings || 0);
+        $('#cancelled_count').text(result.data.cancelled_bookings || 0);
+      },
+      error: (xhr, status, error) => {
+        console.error('❌ AJAX Error loading booking counts:', {
+          xhr,
+          status,
+          error
+        });
+        console.error('Response text:', xhr.responseText);
+      }
+    });
+  }
+
 
   function viewBookingDetails(bookingdetailsid) {
     showGlobalModal('../../views/modal/admin_modal-booking-details.php');
@@ -181,8 +376,17 @@ include_once '../../helper/admin_apps.php' ?>
         action: 'get_booking_details',
         bookingdetailsid: bookingdetailsid
       },
+      beforeSend: function() {
+        Swal.fire({
+          position: 'center',
+          html: '<div class="mb-3"><img src="../../vendor/images/loadingspabook.gif" height="180" width="180"/></div><div><span class="fw-bold">Loading...</span></div>',
+          heightAuto: false,
+          showConfirmButton: false,
+          allowOutsideClick: false
+        });
+      },
       success: result => {
-        console.log('Booking details result:', result);
+        Swal.close();
         $('.declinefrommodal').val(bookingdetailsid);
         $('.acceptfrommodal').val(bookingdetailsid);
 
@@ -203,6 +407,59 @@ include_once '../../helper/admin_apps.php' ?>
         $('#detail-payment-img').attr('src', result.payment_img);
       }
 
+    });
+
+  }
+
+
+
+  function updateStatus(status, bookingid) {
+    Swal.fire({
+      title: 'Are you sure?',
+      text: `You are about to change the status to ${status}.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: `Yes, ${status} it!`
+    }).then((result) => {
+      if (result.isConfirmed) {
+        $.ajax({
+          url: '../../controller/admin_dashboard_contr.php',
+          type: 'POST',
+          dataType: 'json',
+          data: {
+            action: 'update_booking_status',
+            new_status: status,
+            bookingdetailsid: bookingid
+          },
+          success: result => {
+            if (result.status === 'success') {
+              Swal.fire(
+                `${status}!`,
+                `Booking status has been updated to ${status}.`,
+                'success'
+              );
+              loadBookingRequests(status, `#booking${status.replace(' ', '')}Table`);
+              loadBookingCounts();
+              $('#globalModal').modal('hide');
+            } else {
+              Swal.fire(
+                'Error!',
+                'Failed to update booking status. Please try again.',
+                'error'
+              );
+            }
+          },
+          error: () => {
+            Swal.fire(
+              'Error!',
+              'Network error. Please try again.',
+              'error'
+            );
+          }
+        });
+      }
     });
 
   }

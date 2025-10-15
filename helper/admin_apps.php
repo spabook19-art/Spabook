@@ -15,10 +15,7 @@
                         <a href="../admin/admin_home_page.php" class="app_sidebar_link"><i class="pe-2 bi bi-columns-gap"></i>Dashboard</a>
                     </li>
                     <li class="app_sidebar_item" id="admin_booking_request">
-                         <a href="../admin/admin_booking-request.php" class="app_sidebar_link"><i class="pe-2 fa-solid fa-file-pen"></i>Booking Request</a>
-                    </li>
-                    <li class="app_sidebar_item" id="admin_booking_accepted">
-                        <a href="../admin/admin_booking-accepted.php" class="app_sidebar_link"><i class="pe-2 bi bi-check2-square"></i>Booking Accepted</a>
+                         <a href="../admin/admin_booking-request.php" class="app_sidebar_link"><i class="pe-2 fa-solid fa-file-pen"></i>Booking</a>
                     </li>
                     <li class="app_sidebar_item" id="admin_manage_services">
                         <a href="../admin/admin_manage-services.php" class="app_sidebar_link"><i class="pe-2 bi bi-leaf"></i>Manage Services & Products</a>

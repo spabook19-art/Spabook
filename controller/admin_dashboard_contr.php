@@ -55,5 +55,11 @@ if (isset($_POST['action'])) {
             $bookingdetailsid = trim($_POST['bookingdetailsid']);
             echo $Admin->acceptBookingRequest($php_update, $bookingdetailsid, $current_datetimestamp);
             break;
+
+        case 'update_booking_status':
+            $bookingdetailsid = trim($_POST['bookingdetailsid']);
+            $new_status = trim($_POST['new_status']);
+            echo $Admin->updateBookingStatus($php_update, $bookingdetailsid, $new_status, $current_datetimestamp);
+            break;
     }
 }
