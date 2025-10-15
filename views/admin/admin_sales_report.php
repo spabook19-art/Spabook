@@ -196,7 +196,7 @@ include_once '../../helper/admin_apps.php' ?>
 
     // Load Sales Data
     function loadSalesData() {
-      $.post('../../controller/booking_contr.php', {
+      $.post('../../controller/sales_report_contr.php', {
         action: 'get_sales_data'
       }, function(res) {
         if (res.status === 'success') {
@@ -269,7 +269,7 @@ include_once '../../helper/admin_apps.php' ?>
 
     // Load Commission Data
     function loadCommissionData() {
-      $.post('../../controller/booking_contr.php', {
+      $.post('../../controller/sales_report_contr.php', {
         action: 'get_commission_data'
       }, function(res) {
         if (res.status === 'success') {
