@@ -72,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'get_sales_data':
             try {
                 // Get sales report from model
-                $result = $SalesReportModel->getSalesReport($php_fetch);
+                $result = $SalesReportModel->getSalesReport($php_raw_sql);
                 
                 if ($result['status'] === 'error') {
                     response(['status' => 'error', 'message' => $result['message']]);
@@ -121,7 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $totalBookings = count($bookingIds);
                 
                 // Get commission summary to calculate net revenue
-                $commissionSummary = $SalesReportModel->getCommissionSummary($php_fetch, COMMISSION_RATE);
+                $commissionSummary = $SalesReportModel->getCommissionSummary($php_raw_sql, COMMISSION_RATE);
                 $totalCommission = 0;
                 if ($commissionSummary['status'] === 'success') {
                     $totalCommission = (float)$commissionSummary['summary']['total_commission'];
@@ -146,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'get_commission_data':
             try {
                 // Get commission report from model
-                $result = $SalesReportModel->getCommissionReport($php_fetch);
+                $result = $SalesReportModel->getCommissionReport($php_raw_sql);
                 
                 if ($result['status'] === 'error') {
                     response(['status' => 'error', 'message' => $result['message']]);
@@ -201,7 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
         case 'get_sales_summary':
             try {
-                $result = $SalesReportModel->getSalesSummary($php_fetch);
+                $result = $SalesReportModel->getSalesSummary($php_raw_sql);
                 
                 if ($result['status'] === 'error') {
                     response(['status' => 'error', 'message' => $result['message']]);
@@ -222,7 +222,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
         case 'get_commission_summary':
             try {
-                $result = $SalesReportModel->getCommissionSummary($php_fetch, COMMISSION_RATE);
+                $result = $SalesReportModel->getCommissionSummary($php_raw_sql, COMMISSION_RATE);
                 
                 if ($result['status'] === 'error') {
                     response(['status' => 'error', 'message' => $result['message']]);
@@ -243,7 +243,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
         case 'get_therapist_performance':
             try {
-                $result = $SalesReportModel->getTherapistPerformance($php_fetch, COMMISSION_RATE);
+                $result = $SalesReportModel->getTherapistPerformance($php_raw_sql, COMMISSION_RATE);
                 
                 if ($result['status'] === 'error') {
                     response(['status' => 'error', 'message' => $result['message']]);
@@ -275,11 +275,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'get_complete_report':
             try {
                 // Get all data at once
-                $salesResult = $SalesReportModel->getSalesReport($php_fetch);
-                $commissionResult = $SalesReportModel->getCommissionReport($php_fetch);
-                $salesSummary = $SalesReportModel->getSalesSummary($php_fetch);
-                $commissionSummary = $SalesReportModel->getCommissionSummary($php_fetch, COMMISSION_RATE);
-                $therapistPerformance = $SalesReportModel->getTherapistPerformance($php_fetch, COMMISSION_RATE);
+                $salesResult = $SalesReportModel->getSalesReport($php_raw_sql);
+                $commissionResult = $SalesReportModel->getCommissionReport($php_raw_sql);
+                $salesSummary = $SalesReportModel->getSalesSummary($php_raw_sql);
+                $commissionSummary = $SalesReportModel->getCommissionSummary($php_raw_sql, COMMISSION_RATE);
+                $therapistPerformance = $SalesReportModel->getTherapistPerformance($php_raw_sql, COMMISSION_RATE);
                 
                 response([
                     'status' => 'success',

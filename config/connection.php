@@ -82,6 +82,61 @@ function supabaseRequest($method, $endpoint, $data = null)
     return $decodedResponse;
 }
 
+// Raw SQL query execution via Supabase REST API
+$php_raw_sql = function ($query) {
+    global $baseUrl, $apiKey;
+    
+    $query = trim($query);
+    
+    if (preg_match('/^SELECT/i', $query)) {
+        $selectMatch = [];
+        if (preg_match('/SELECT\s+(.*?)\s+FROM\s+(\w+)/i', $query, $selectMatch)) {
+            $selectFields = $selectMatch[1];
+            $table = $selectMatch[2];
+            
+            $url = "$baseUrl/$table?select=" . urlencode($selectFields);
+            
+            if (preg_match('/WHERE\s+(.*?)(?:ORDER|GROUP|LIMIT|$)/i', $query, $whereMatch)) {
+                $whereClause = $whereMatch[1];
+                
+                if (preg_match('/LOWER\((\w+)\)\s*=\s*[\'"]?(\w+)[\'"]?/i', $whereClause, $lowerMatch)) {
+                    $field = $lowerMatch[1];
+                    $value = $lowerMatch[2];
+                    $url .= "&$field=ilike." . urlencode("%$value%");
+                }
+            }
+            
+            $headers = [
+                "apikey: $apiKey",
+                "Authorization: Bearer $apiKey",
+                "Content-Type: application/json"
+            ];
+            
+            $ch = curl_init($url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+            
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($ch);
+            curl_close($ch);
+            
+            if ($curlError) {
+                return ['error' => 'cURL Error: ' . $curlError];
+            }
+            
+            if ($httpCode >= 400) {
+                return ['error' => 'HTTP Error: ' . $httpCode];
+            }
+            
+            $result = json_decode($response, true);
+            return $result ?: [];
+        }
+    }
+    
+    return ['error' => 'Unsupported query format'];
+};
+
 // Fetch (GET)
 $php_fetch = function ($table, $select = '*', $filters = [], $joins = []) {
     // Special case: UPDATE

@@ -239,7 +239,7 @@ include_once '../../helper/admin_apps.php' ?>
                   <td>${sale.booking_id}</td>
                   <td>${sale.service_name}</td>
                   <td>${sale.customer_name}</td>
-                  <td>${sale.date_created}</td>
+                  <td>${sale.date_created_formatted || sale.date_created}</td>
                   <td>${sale.quantity}</td>
                   <td>${peso(sale.price)}</td>
                   <td>${peso(sale.total_amount)}</td>

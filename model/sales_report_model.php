@@ -2,66 +2,127 @@
 
 class SalesReportModel
 {
+    private function formatDate($datetime) {
+        if (!$datetime) return 'N/A';
+        try {
+            return date('M d, Y', strtotime($datetime));
+        } catch (Exception $e) {
+            return 'N/A';
+        }
+    }
+    
+    private function formatDateTime($datetime) {
+        if (!$datetime) return 'N/A';
+        try {
+            return date('M d, Y H:i', strtotime($datetime));
+        } catch (Exception $e) {
+            return 'N/A';
+        }
+    }
     /**
      * Get all sales data from completed bookings
-     * Fetches all data from booking_details table where status is 'Completed'
+     * Follows booking model pattern: fetch main records, loop through, fetch related data per record
      * 
      * @param callable $php_fetch Database fetch function
      * @return array Sales data with all booking details information
      */
-    public function getSalesReport($php_fetch)
+    public function getSalesReport($php_raw_sql)
     {
         try {
-            // Get all completed booking details with all required fields
-            $query = "SELECT 
-                        bd.bookingdetailsid,
-                        bd.booking_id,
-                        bd.service_id,
-                        bd.quantity,
-                        bd.price,
-                        bd.therapist_id,
-                        bd.schedule_start,
-                        bd.schedule_end,
-                        bd.status,
-                        bd.patient_name,
-                        bd.patient_age,
-                        bd.patient_gender,
-                        bd.patient_notes,
-                        b.bookingid,
-                        b.user_id,
-                        b.total_price as booking_total_price,
-                        b.payment_status,
-                        b.payment_img,
-                        b.booking_status,
-                        b.date_created,
-                        CONCAT(u.first_name, ' ', u.last_name) as customer_name,
-                        u.email as customer_email,
-                        u.contact_number as customer_phone,
-                        s.service_name,
-                        s.duration as service_duration,
-                        CASE 
-                            WHEN bd.therapist_id IS NOT NULL THEN CONCAT(t.first_name, ' ', t.last_name)
-                            ELSE NULL
-                        END as therapist_name,
-                        (bd.quantity * bd.price) as total_amount
-                      FROM booking_details bd
-                      INNER JOIN booking b ON b.bookingid = bd.booking_id
-                      INNER JOIN users u ON u.user_id = b.user_id
-                      INNER JOIN services s ON s.id = bd.service_id
-                      LEFT JOIN users t ON t.user_id = bd.therapist_id AND t.role = 'Therapist'
-                      WHERE bd.status = 'Completed'
-                        AND bd.service_id IS NOT NULL
-                        AND bd.quantity IS NOT NULL
-                        AND bd.price IS NOT NULL
-                      ORDER BY b.date_created DESC, bd.bookingdetailsid ASC";
+            global $php_fetch;
             
-            $result = $php_fetch($query);
+            $booking_details = $php_fetch('booking_details', '*', ['status' => 'Completed']);
             
-            if (!$result || count($result) === 0) {
+            if (!$booking_details || isset($booking_details['error']) || count($booking_details) === 0) {
                 return ['status' => 'nodata', 'sales' => []];
             }
             
-            return ['status' => 'success', 'sales' => $result];
+            $sales = [];
+            
+            foreach ($booking_details as $detail) {
+                try {
+                    $booking = $php_fetch('booking', '*', ['bookingid' => $detail['booking_id']]);
+                    if (!$booking || isset($booking['error']) || count($booking) === 0) {
+                        continue;
+                    }
+                    
+                    $user = null;
+                    if (isset($booking[0]['user_id']) && !empty($booking[0]['user_id'])) {
+                        $userResult = $php_fetch('users', '*', ['user_id' => $booking[0]['user_id']]);
+                        if ($userResult && !isset($userResult['error']) && is_array($userResult) && count($userResult) > 0) {
+                            $user = $userResult;
+                        }
+                    }
+                    
+                    $service = null;
+                    if (isset($detail['service_id']) && !empty($detail['service_id'])) {
+                        $serviceResult = $php_fetch('services', '*', ['id' => $detail['service_id']]);
+                        if ($serviceResult && !isset($serviceResult['error']) && is_array($serviceResult) && count($serviceResult) > 0) {
+                            $service = $serviceResult;
+                        }
+                    }
+                    
+                    $therapist = null;
+                    if (isset($detail['therapist_id']) && !empty($detail['therapist_id'])) {
+                        $therapistResult = $php_fetch('users', '*', ['user_id' => $detail['therapist_id']]);
+                        if ($therapistResult && !isset($therapistResult['error']) && is_array($therapistResult) && count($therapistResult) > 0) {
+                            $therapist = $therapistResult;
+                        }
+                    }
+                    
+                    if (!$detail['quantity'] || !$detail['price']) {
+                        continue;
+                    }
+                    
+                    $sales[] = [
+                        'bookingdetailsid' => $detail['bookingdetailsid'],
+                        'booking_id' => $detail['booking_id'],
+                        'service_id' => $detail['service_id'],
+                        'quantity' => $detail['quantity'],
+                        'price' => $detail['price'],
+                        'therapist_id' => $detail['therapist_id'],
+                        'schedule_start' => $detail['schedule_start'],
+                        'schedule_end' => $detail['schedule_end'],
+                        'schedule_start_formatted' => $this->formatDateTime($detail['schedule_start']),
+                        'schedule_end_formatted' => $this->formatDateTime($detail['schedule_end']),
+                        'status' => $detail['status'],
+                        'patient_name' => $detail['patient_name'],
+                        'patient_age' => $detail['patient_age'],
+                        'patient_gender' => $detail['patient_gender'],
+                        'patient_notes' => $detail['patient_notes'],
+                        'bookingid' => $booking[0]['bookingid'] ?? null,
+                        'user_id' => $booking[0]['user_id'] ?? null,
+                        'booking_total_price' => $booking[0]['total_price'] ?? 0,
+                        'payment_status' => $booking[0]['payment_status'] ?? false,
+                        'payment_img' => $booking[0]['payment_img'] ?? null,
+                        'booking_status' => $booking[0]['booking_status'] ?? null,
+                        'date_created' => $booking[0]['date_created'] ?? null,
+                        'date_created_formatted' => $this->formatDate($booking[0]['date_created'] ?? null),
+                        'customer_name' => ($user && count($user) > 0 ? $user[0]['full_name'] ?? ($user[0]['first_name'] . ' ' . $user[0]['last_name']) : 'N/A'),
+                        'customer_email' => ($user && count($user) > 0 ? $user[0]['email'] : 'N/A'),
+                        'customer_phone' => ($user && count($user) > 0 ? $user[0]['contact_number'] : 'N/A'),
+                        'service_name' => ($service && count($service) > 0 ? $service[0]['service_name'] : 'N/A'),
+                        'service_duration' => ($service && count($service) > 0 ? $service[0]['duration'] : 0),
+                        'therapist_name' => ($therapist && count($therapist) > 0 ? $therapist[0]['full_name'] ?? ($therapist[0]['first_name'] . ' ' . $therapist[0]['last_name']) : 'N/A'),
+                        'total_amount' => $detail['quantity'] * $detail['price']
+                    ];
+                } catch (Exception $e) {
+                    error_log("Error processing sales detail {$detail['bookingdetailsid']}: " . $e->getMessage());
+                    continue;
+                }
+            }
+            
+            usort($sales, function($a, $b) {
+                $dateA = strtotime($a['date_created'] ?? 0);
+                $dateB = strtotime($b['date_created'] ?? 0);
+                return $dateB - $dateA;
+            });
+            
+            if (!$sales) {
+                return ['status' => 'nodata', 'sales' => []];
+            }
+            
+            return ['status' => 'success', 'sales' => $sales];
         } catch (Exception $e) {
             error_log("Error in getSalesReport: " . $e->getMessage());
             return ['status' => 'error', 'message' => $e->getMessage(), 'sales' => []];
@@ -75,57 +136,107 @@ class SalesReportModel
      * @param callable $php_fetch Database fetch function
      * @return array Commission data with therapist information
      */
-    public function getCommissionReport($php_fetch)
+    public function getCommissionReport($php_raw_sql)
     {
         try {
-            // Get all completed booking details with assigned therapists
-            $query = "SELECT 
-                        bd.bookingdetailsid,
-                        bd.booking_id,
-                        bd.service_id,
-                        bd.quantity,
-                        bd.price,
-                        bd.therapist_id,
-                        bd.schedule_start,
-                        bd.schedule_end,
-                        bd.status,
-                        bd.patient_name,
-                        bd.patient_age,
-                        bd.patient_gender,
-                        bd.patient_notes,
-                        b.bookingid,
-                        b.date_created,
-                        CONCAT(t.first_name, ' ', t.last_name) as therapist_name,
-                        t.email as therapist_email,
-                        t.contact_number as therapist_phone,
-                        s.service_name,
-                        s.duration as service_duration,
-                        CONCAT(u.first_name, ' ', u.last_name) as customer_name,
-                        -- Calculate hours logged from schedule_start to schedule_end
-                        CASE 
-                            WHEN bd.schedule_start IS NOT NULL AND bd.schedule_end IS NOT NULL 
-                            THEN EXTRACT(EPOCH FROM (bd.schedule_end - bd.schedule_start))/3600
-                            ELSE 1.0
-                        END as hours_logged,
-                        (bd.quantity * bd.price) as service_total
-                      FROM booking_details bd
-                      INNER JOIN booking b ON b.bookingid = bd.booking_id
-                      INNER JOIN users u ON u.user_id = b.user_id
-                      INNER JOIN services s ON s.id = bd.service_id
-                      INNER JOIN users t ON t.user_id = bd.therapist_id
-                      WHERE bd.status = 'Completed'
-                        AND bd.therapist_id IS NOT NULL
-                        AND bd.service_id IS NOT NULL
-                        AND t.role = 'Therapist'
-                      ORDER BY bd.schedule_start DESC, t.first_name ASC";
+            global $php_fetch;
             
-            $result = $php_fetch($query);
+            $booking_details = $php_fetch('booking_details', '*', ['status' => 'Completed']);
             
-            if (!$result || count($result) === 0) {
+            if (!$booking_details || isset($booking_details['error']) || count($booking_details) === 0) {
                 return ['status' => 'nodata', 'commissions' => []];
             }
             
-            return ['status' => 'success', 'commissions' => $result];
+            $commissions = [];
+            
+            foreach ($booking_details as $detail) {
+                try {
+                    if (!isset($detail['therapist_id']) || empty($detail['therapist_id'])) {
+                        continue;
+                    }
+                    
+                    if (!isset($detail['service_id']) || empty($detail['service_id'])) {
+                        continue;
+                    }
+                    
+                    $booking = $php_fetch('booking', '*', ['bookingid' => $detail['booking_id']]);
+                    if (!$booking || isset($booking['error']) || count($booking) === 0) {
+                        continue;
+                    }
+                    
+                    $therapistResult = $php_fetch('users', '*', ['user_id' => $detail['therapist_id']]);
+                    if (!$therapistResult || isset($therapistResult['error']) || count($therapistResult) === 0) {
+                        continue;
+                    }
+                    $therapist = $therapistResult;
+                    
+                    $customer = null;
+                    if (isset($booking[0]['user_id']) && !empty($booking[0]['user_id'])) {
+                        $customerResult = $php_fetch('users', '*', ['user_id' => $booking[0]['user_id']]);
+                        if ($customerResult && !isset($customerResult['error']) && is_array($customerResult) && count($customerResult) > 0) {
+                            $customer = $customerResult;
+                        }
+                    }
+                    
+                    $service = null;
+                    if (isset($detail['service_id']) && !empty($detail['service_id'])) {
+                        $serviceResult = $php_fetch('services', '*', ['id' => $detail['service_id']]);
+                        if ($serviceResult && !isset($serviceResult['error']) && is_array($serviceResult) && count($serviceResult) > 0) {
+                            $service = $serviceResult;
+                        }
+                    }
+                    
+                    $hoursLogged = 1.0;
+                    if ($detail['schedule_start'] && $detail['schedule_end']) {
+                        try {
+                            $start = new \DateTime($detail['schedule_start']);
+                            $end = new \DateTime($detail['schedule_end']);
+                            $interval = $end->diff($start);
+                            $hoursLogged = ($interval->h + ($interval->i / 60) + ($interval->s / 3600));
+                        } catch (Exception $e) {
+                            $hoursLogged = 1.0;
+                        }
+                    }
+                    
+                    $commissions[] = [
+                        'bookingdetailsid' => $detail['bookingdetailsid'],
+                        'booking_id' => $detail['booking_id'],
+                        'service_id' => $detail['service_id'],
+                        'quantity' => $detail['quantity'],
+                        'price' => $detail['price'],
+                        'therapist_id' => $detail['therapist_id'],
+                        'schedule_start' => $detail['schedule_start'],
+                        'schedule_end' => $detail['schedule_end'],
+                        'schedule_start_formatted' => $this->formatDateTime($detail['schedule_start']),
+                        'schedule_end_formatted' => $this->formatDateTime($detail['schedule_end']),
+                        'status' => $detail['status'],
+                        'patient_name' => $detail['patient_name'],
+                        'patient_age' => $detail['patient_age'],
+                        'patient_gender' => $detail['patient_gender'],
+                        'patient_notes' => $detail['patient_notes'],
+                        'bookingid' => $booking[0]['bookingid'] ?? null,
+                        'date_created' => $booking[0]['date_created'] ?? null,
+                        'date_formatted' => $this->formatDate($detail['schedule_start']),
+                        'therapist_name' => $therapist[0]['full_name'] ?? ($therapist[0]['first_name'] . ' ' . $therapist[0]['last_name']),
+                        'therapist_email' => $therapist[0]['email'] ?? 'N/A',
+                        'therapist_phone' => $therapist[0]['contact_number'] ?? 'N/A',
+                        'service_name' => ($service && count($service) > 0 ? $service[0]['service_name'] : 'N/A'),
+                        'service_duration' => ($service && count($service) > 0 ? $service[0]['duration'] : 0),
+                        'customer_name' => ($customer && count($customer) > 0 ? $customer[0]['full_name'] ?? ($customer[0]['first_name'] . ' ' . $customer[0]['last_name']) : 'N/A'),
+                        'hours_logged' => $hoursLogged,
+                        'service_total' => $detail['quantity'] * $detail['price']
+                    ];
+                } catch (Exception $e) {
+                    error_log("Error processing commission detail {$detail['bookingdetailsid']}: " . $e->getMessage());
+                    continue;
+                }
+            }
+            
+            if (!$commissions) {
+                return ['status' => 'nodata', 'commissions' => []];
+            }
+            
+            return ['status' => 'success', 'commissions' => $commissions];
         } catch (Exception $e) {
             error_log("Error in getCommissionReport: " . $e->getMessage());
             return ['status' => 'error', 'message' => $e->getMessage(), 'commissions' => []];
@@ -138,31 +249,49 @@ class SalesReportModel
      * @param callable $php_fetch Database fetch function
      * @return array Summary statistics
      */
-    public function getSalesSummary($php_fetch)
+    public function getSalesSummary($php_raw_sql)
     {
         try {
-            $query = "SELECT 
-                        COUNT(DISTINCT bd.booking_id) as total_bookings,
-                        COUNT(bd.bookingdetailsid) as total_services,
-                        COALESCE(SUM(bd.quantity * bd.price), 0) as total_sales,
-                        COALESCE(AVG(bd.quantity * bd.price), 0) as average_sale
-                      FROM booking_details bd
-                      WHERE bd.status = 'Completed'
-                        AND bd.service_id IS NOT NULL
-                        AND bd.quantity IS NOT NULL
-                        AND bd.price IS NOT NULL";
+            global $php_fetch;
             
-            $result = $php_fetch($query);
+            $booking_details = $php_fetch('booking_details', '*', ['status' => 'Completed']);
             
-            if ($result && count($result) > 0) {
-                return ['status' => 'success', 'summary' => $result[0]];
+            if (!$booking_details || isset($booking_details['error']) || count($booking_details) === 0) {
+                return ['status' => 'success', 'summary' => [
+                    'total_bookings' => 0,
+                    'total_services' => 0,
+                    'total_sales' => 0,
+                    'average_sale' => 0
+                ]];
             }
             
+            $bookingIds = [];
+            $totalSales = 0;
+            $services = 0;
+            $amounts = [];
+            
+            foreach ($booking_details as $detail) {
+                if (!$detail['service_id'] || !$detail['quantity'] || !$detail['price']) {
+                    continue;
+                }
+                
+                $amount = $detail['quantity'] * $detail['price'];
+                $amounts[] = $amount;
+                $totalSales += $amount;
+                $services++;
+                
+                if (!in_array($detail['booking_id'], $bookingIds)) {
+                    $bookingIds[] = $detail['booking_id'];
+                }
+            }
+            
+            $averageSale = count($amounts) > 0 ? array_sum($amounts) / count($amounts) : 0;
+            
             return ['status' => 'success', 'summary' => [
-                'total_bookings' => 0,
-                'total_services' => 0,
-                'total_sales' => 0,
-                'average_sale' => 0
+                'total_bookings' => count($bookingIds),
+                'total_services' => $services,
+                'total_sales' => $totalSales,
+                'average_sale' => $averageSale
             ]];
         } catch (Exception $e) {
             error_log("Error in getSalesSummary: " . $e->getMessage());
@@ -177,39 +306,60 @@ class SalesReportModel
      * @param float $commissionRate Commission rate per hour (default: 50)
      * @return array Commission summary
      */
-    public function getCommissionSummary($php_fetch, $commissionRate = 50.0)
+    public function getCommissionSummary($php_raw_sql, $commissionRate = 50.0)
     {
         try {
-            $query = "SELECT 
-                        COUNT(DISTINCT bd.therapist_id) as total_therapists,
-                        COUNT(bd.bookingdetailsid) as total_services,
-                        COALESCE(SUM(
-                            CASE 
-                                WHEN bd.schedule_start IS NOT NULL AND bd.schedule_end IS NOT NULL 
-                                THEN EXTRACT(EPOCH FROM (bd.schedule_end - bd.schedule_start))/3600
-                                ELSE 1.0
-                            END
-                        ), 0) as total_hours
-                      FROM booking_details bd
-                      INNER JOIN users t ON t.user_id = bd.therapist_id
-                      WHERE bd.status = 'Completed'
-                        AND bd.therapist_id IS NOT NULL
-                        AND t.role = 'Therapist'";
+            global $php_fetch;
             
-            $result = $php_fetch($query);
+            $booking_details = $php_fetch('booking_details', '*', ['status' => 'Completed']);
             
-            if ($result && count($result) > 0) {
-                $summary = $result[0];
-                $summary['total_commission'] = (float)$summary['total_hours'] * $commissionRate;
-                $summary['commission_rate'] = $commissionRate;
-                return ['status' => 'success', 'summary' => $summary];
+            if (!$booking_details || isset($booking_details['error']) || count($booking_details) === 0) {
+                return ['status' => 'success', 'summary' => [
+                    'total_services' => 0,
+                    'total_therapists' => 0,
+                    'total_hours' => 0,
+                    'total_commission' => 0,
+                    'commission_rate' => $commissionRate
+                ]];
             }
             
+            $therapistIds = [];
+            $totalHours = 0;
+            $serviceCount = 0;
+            
+            foreach ($booking_details as $detail) {
+                if (!isset($detail['therapist_id']) || empty($detail['therapist_id'])) {
+                    continue;
+                }
+                
+                $serviceCount++;
+                
+                if (!in_array($detail['therapist_id'], $therapistIds)) {
+                    $therapistIds[] = $detail['therapist_id'];
+                }
+                
+                if ($detail['schedule_start'] && $detail['schedule_end']) {
+                    try {
+                        $start = new \DateTime($detail['schedule_start']);
+                        $end = new \DateTime($detail['schedule_end']);
+                        $interval = $end->diff($start);
+                        $hours = ($interval->h + ($interval->i / 60) + ($interval->s / 3600));
+                        $totalHours += $hours;
+                    } catch (Exception $e) {
+                        $totalHours += 1.0;
+                    }
+                } else {
+                    $totalHours += 1.0;
+                }
+            }
+            
+            $totalCommission = $totalHours * $commissionRate;
+            
             return ['status' => 'success', 'summary' => [
-                'total_therapists' => 0,
-                'total_services' => 0,
-                'total_hours' => 0,
-                'total_commission' => 0,
+                'total_services' => $serviceCount,
+                'total_therapists' => count($therapistIds),
+                'total_hours' => $totalHours,
+                'total_commission' => $totalCommission,
                 'commission_rate' => $commissionRate
             ]];
         } catch (Exception $e) {
@@ -219,50 +369,83 @@ class SalesReportModel
     }
 
     /**
-     * Get sales and commission data grouped by therapist
+     * Get therapist performance statistics
      * 
      * @param callable $php_fetch Database fetch function
-     * @param float $commissionRate Commission rate per hour (default: 50)
+     * @param float $commissionRate Commission rate per hour
      * @return array Therapist performance data
      */
-    public function getTherapistPerformance($php_fetch, $commissionRate = 50.0)
+    public function getTherapistPerformance($php_raw_sql, $commissionRate = 50.0)
     {
         try {
-            $query = "SELECT 
-                        bd.therapist_id,
-                        CONCAT(t.first_name, ' ', t.last_name) as therapist_name,
-                        COUNT(bd.bookingdetailsid) as total_services,
-                        COALESCE(SUM(bd.quantity * bd.price), 0) as total_sales,
-                        COALESCE(SUM(
-                            CASE 
-                                WHEN bd.schedule_start IS NOT NULL AND bd.schedule_end IS NOT NULL 
-                                THEN EXTRACT(EPOCH FROM (bd.schedule_end - bd.schedule_start))/3600
-                                ELSE 1.0
-                            END
-                        ), 0) as total_hours
-                      FROM booking_details bd
-                      INNER JOIN users t ON t.user_id = bd.therapist_id
-                      WHERE bd.status = 'Completed'
-                        AND bd.therapist_id IS NOT NULL
-                        AND t.role = 'Therapist'
-                      GROUP BY bd.therapist_id, t.first_name, t.last_name
-                      ORDER BY total_sales DESC";
+            global $php_fetch;
             
-            $result = $php_fetch($query);
+            $booking_details = $php_fetch('booking_details', '*', ['status' => 'Completed']);
             
-            if ($result && count($result) > 0) {
-                // Calculate commission for each therapist
-                foreach ($result as &$therapist) {
-                    $therapist['total_commission'] = (float)$therapist['total_hours'] * $commissionRate;
-                    $therapist['commission_rate'] = $commissionRate;
-                }
-                return ['status' => 'success', 'therapists' => $result];
+            if (!$booking_details || isset($booking_details['error']) || count($booking_details) === 0) {
+                return ['status' => 'nodata', 'therapists' => []];
             }
             
-            return ['status' => 'nodata', 'therapists' => []];
+            $therapists = [];
+            
+            foreach ($booking_details as $detail) {
+                if (!isset($detail['therapist_id']) || empty($detail['therapist_id'])) {
+                    continue;
+                }
+                
+                $therapistId = $detail['therapist_id'];
+                
+                if (!isset($therapists[$therapistId])) {
+                    $therapistUserResult = $php_fetch('users', '*', ['user_id' => $therapistId]);
+                    if (!$therapistUserResult || isset($therapistUserResult['error']) || count($therapistUserResult) === 0) {
+                        continue;
+                    }
+                    $therapistUser = $therapistUserResult;
+                    
+                    $therapists[$therapistId] = [
+                        'therapist_id' => $therapistId,
+                        'therapist_name' => $therapistUser[0]['full_name'] ?? ($therapistUser[0]['first_name'] . ' ' . $therapistUser[0]['last_name']),
+                        'therapist_email' => $therapistUser[0]['email'] ?? null,
+                        'total_services' => 0,
+                        'total_sales' => 0,
+                        'total_hours' => 0,
+                        'total_commission' => 0
+                    ];
+                }
+                
+                $therapists[$therapistId]['total_services']++;
+                $therapists[$therapistId]['total_sales'] += ($detail['quantity'] * $detail['price']);
+                
+                if ($detail['schedule_start'] && $detail['schedule_end']) {
+                    try {
+                        $start = new \DateTime($detail['schedule_start']);
+                        $end = new \DateTime($detail['schedule_end']);
+                        $interval = $end->diff($start);
+                        $hours = ($interval->h + ($interval->i / 60) + ($interval->s / 3600));
+                        $therapists[$therapistId]['total_hours'] += $hours;
+                    } catch (Exception $e) {
+                        $therapists[$therapistId]['total_hours'] += 1.0;
+                    }
+                } else {
+                    $therapists[$therapistId]['total_hours'] += 1.0;
+                }
+            }
+            
+            foreach ($therapists as &$t) {
+                $t['total_commission'] = $t['total_hours'] * $commissionRate;
+            }
+            
+            $result = array_values($therapists);
+            
+            if (!$result) {
+                return ['status' => 'nodata', 'therapists' => []];
+            }
+            
+            return ['status' => 'success', 'therapists' => $result];
         } catch (Exception $e) {
             error_log("Error in getTherapistPerformance: " . $e->getMessage());
             return ['status' => 'error', 'message' => $e->getMessage(), 'therapists' => []];
         }
     }
 }
+?>
