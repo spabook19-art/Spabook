@@ -208,8 +208,15 @@ function submitBookingWithPayment() {
                 price: service.price,
                 selectedDate: service.selectedDate,
                 selectedTime: service.selectedTime,
-                therapists: service.therapists || []
+                therapists: service.therapists || [],
+                therapist_id: null,
+                therapist_name: null
             };
+            
+            if (isStrokeService) {
+                serviceData.therapist_id = service.assignedTherapistId || null;
+                serviceData.therapist_name = service.assignedTherapistName || null;
+            }
             
             // Add patient data only for stroke services
             if (isStrokeService && patientCache) {

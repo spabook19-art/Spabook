@@ -120,19 +120,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         error_log("Schedule: $scheduleStart to $scheduleEnd");
                     }
                     
+                    // Determine if this is a stroke-specific service
+                    $serviceName = strtolower($service['name'] ?? $service['serviceName'] ?? '');
+                    $isStrokeService = strpos($serviceName, 'stroke') !== false;
+
                     // Get therapist assignment (if any - for stroke services)
                     $assignedTherapistId = null;
-                    if (isset($service['therapists']) && is_array($service['therapists']) && count($service['therapists']) > 0) {
-                        // Use the first therapist assignment
-                        $therapistId = $service['therapists'][0]['therapistId'] ?? null;
-                        
-                        // Convert 'any' string to null, and ensure it's an integer or null
-                        if ($therapistId === 'any' || $therapistId === '' || $therapistId === 'null') {
-                            $assignedTherapistId = null;
-                        } elseif (is_numeric($therapistId)) {
-                            $assignedTherapistId = intval($therapistId);
-                        } else {
-                            $assignedTherapistId = null;
+                    if ($isStrokeService && isset($service['therapists']) && !empty($service['therapists'])) {
+                        $therapistCandidates = is_array($service['therapists']) ? $service['therapists'] : [$service['therapists']];
+                        foreach ($therapistCandidates as $candidate) {
+                            $candidateId = null;
+                            if (is_array($candidate)) {
+                                $candidateId = $candidate['therapistId'] ?? $candidate['therapistid'] ?? $candidate['therapist_id'] ?? null;
+                            } else {
+                                $candidateId = $candidate;
+                            }
+                            if (is_string($candidateId)) {
+                                $candidateId = trim($candidateId);
+                            }
+                            if ($candidateId === null || $candidateId === '' || (is_string($candidateId) && in_array(strtolower($candidateId), ['any', 'null'], true))) {
+                                continue;
+                            }
+                            $assignedTherapistId = (string) $candidateId;
+                            break;
+                        }
+                    }
+                    if ($isStrokeService && $assignedTherapistId === null) {
+                        $fallbackTherapist = $service['assignedTherapistId'] ?? $service['therapist_id'] ?? $service['therapistId'] ?? $service['therapistid'] ?? null;
+                        if (is_string($fallbackTherapist)) {
+                            $fallbackTherapist = trim($fallbackTherapist);
+                        }
+                        if ($fallbackTherapist !== null && $fallbackTherapist !== '' && (!is_string($fallbackTherapist) || !in_array(strtolower($fallbackTherapist), ['any', 'null'], true))) {
+                            $assignedTherapistId = (string) $fallbackTherapist;
                         }
                     }
                     

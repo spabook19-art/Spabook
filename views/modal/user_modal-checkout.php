@@ -442,6 +442,8 @@
                 therapistName: 'Any Available Therapist'
             });
         }
+        checkoutData.services[serviceIndex].assignedTherapistId = null;
+        checkoutData.services[serviceIndex].assignedTherapistName = 'Any Available Therapist';
 
         // Attach event handlers
         optionsContainer.find('.form-check-input').on('change', function() {
@@ -458,7 +460,14 @@
     function updateSelectedTherapists(serviceIndex) {
         checkoutData.services[serviceIndex].therapists = [];
 
-        $(`.therapist-selection-section[data-service-index="${serviceIndex}"] .form-check-input:checked`).each(function() {
+        const selectedInputs = $(`.therapist-selection-section[data-service-index="${serviceIndex}"] .form-check-input:checked`);
+
+        if (selectedInputs.length === 0) {
+            checkoutData.services[serviceIndex].assignedTherapistId = null;
+            checkoutData.services[serviceIndex].assignedTherapistName = 'Any Available Therapist';
+        }
+
+        selectedInputs.each(function(index) {
             const therapistId = $(this).val();
             const therapistName = $(this).data('therapist-name');
             const person = parseInt($(this).data('person'));
@@ -468,7 +477,25 @@
                 therapistId: therapistId,
                 therapistName: therapistName
             });
+
+            if (index === 0) {
+                if (therapistId && therapistId !== 'any' && therapistId !== 'null' && therapistId !== '') {
+                    checkoutData.services[serviceIndex].assignedTherapistId = therapistId;
+                    checkoutData.services[serviceIndex].assignedTherapistName = therapistName;
+                } else {
+                    checkoutData.services[serviceIndex].assignedTherapistId = null;
+                    checkoutData.services[serviceIndex].assignedTherapistName = 'Any Available Therapist';
+                }
+            }
         });
+
+        if (selectedInputs.length > 0 && (!checkoutData.services[serviceIndex].assignedTherapistId || checkoutData.services[serviceIndex].assignedTherapistId === 'any')) {
+            const firstSpecificTherapist = checkoutData.services[serviceIndex].therapists.find(t => t.therapistId && t.therapistId !== 'any' && t.therapistId !== 'null' && t.therapistId !== '');
+            if (firstSpecificTherapist) {
+                checkoutData.services[serviceIndex].assignedTherapistId = firstSpecificTherapist.therapistId;
+                checkoutData.services[serviceIndex].assignedTherapistName = firstSpecificTherapist.therapistName;
+            }
+        }
 
         console.log('✅ Updated therapists for service', serviceIndex, ':', checkoutData.services[serviceIndex].therapists);
         updateBookingSummary();
@@ -591,7 +618,9 @@
                 price: service.price,
                 selectedDate: service.selectedDate,
                 selectedTime: service.selectedTime,
-                therapists: service.therapists || []  // Use 'therapists' (where selections are stored)
+                therapists: service.therapists || [],  // Use 'therapists' (where selections are stored)
+                assignedTherapistId: service.assignedTherapistId || null,
+                assignedTherapistName: service.assignedTherapistName || null
             })),
             totalAmount: checkoutData.totalAmount
         };
