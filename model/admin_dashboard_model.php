@@ -73,7 +73,7 @@ class Admin
         // Fetch bookings with joins
         $bookings = $php_fetch(
             'booking',
-            'bookingid, date_created, payment_img, users(full_name, contact_number), booking_details(status, payment_status, price,date_modified, services(service_name))',
+            'bookingid, date_created, payment_img, users(full_name, contact_number), booking_details(bookingdetailsid, status, payment_status, price, schedule_start, schedule_end, date_modified, services(id, service_name), therapist_id)',
             [],
         );
 
@@ -87,17 +87,24 @@ class Admin
             foreach ($detailsArr as $details) {
                 $service    = $details['services'] ?? null;
                 $serviceName = $service['service_name'] ?? 'Unknown Service';
+                $serviceId = $service['id'] ?? null;
+                $scheduleStart = $details['schedule_start'] ?? null;
+                $scheduleEnd = $details['schedule_end'] ?? null;
+                $displayDate = $scheduleStart ? date('M d, Y g:i A', strtotime($scheduleStart)) : date('M d, Y g:i A', strtotime($details['date_modified'] ?? 'now'));
 
                 $result[] = [
                     'bookingid'      => $booking['bookingid'],
                     'user_name'      => $fullname,
                     'user_phone'     => $contact,
                     'services_name'  => $serviceName,
+                    'service_id'     => $serviceId,
                     'price'          => $details['price'] ?? 0,
-                    'booking_date'   => date('M d, Y g:i A', strtotime($details['date_modified'] ?? 'now')),
+                    'booking_date'   => $displayDate,
                     'booking_status' => $details['status'] ?? '',
                     'payment_status' => $details['payment_status'] ?? '',
-                    'payment_img'    => $booking['payment_img'] ?? null
+                    'payment_img'    => $booking['payment_img'] ?? null,
+                    'schedule_start' => $scheduleStart,
+                    'schedule_end'   => $scheduleEnd
                 ];
             }
         }
@@ -230,7 +237,7 @@ class Admin
         // Fetch bookings with joins
         $bookings = $php_fetch(
             'booking',
-            'bookingid, users(profile_picture, full_name), booking_details(bookingdetailsid, bookingdetails_id, status, price, date_modified, services(service_name))',
+            'bookingid, users(profile_picture, full_name), booking_details(bookingdetailsid, bookingdetails_id, status, price, date_modified, schedule_start, schedule_end, therapist_id, services(id, service_name))',
             [
                 'booking_details.status' => $status
             ],
@@ -248,16 +255,24 @@ class Admin
             foreach ($detailsArr as $details) {
                 $service      = $details['services'] ?? [];
                 $serviceName  = $service['service_name'] ?? 'Unknown Service';
+                $serviceId    = $service['id'] ?? null;
+                $scheduleStart = $details['schedule_start'] ?? null;
+                $scheduleEnd   = $details['schedule_end'] ?? null;
+                $therapistId   = $details['therapist_id'] ?? null;
 
                 $result[] = [
                     'bookingdetailsid'   => $details['bookingdetailsid'] ?? null,
                     'bookingdetails_id'  => $details['bookingdetails_id'] ?? null,
                     'user_name'          => $fullname,
                     'services_name'      => $serviceName,
+                    'service_id'         => $serviceId,
                     'price'              => $details['price'] ?? 0,
                     'booking_date'       => date('M d, Y g:i A', strtotime($details['date_modified'] ?? 'now')),
                     'booking_status'     => $details['status'] ?? '',
-                    'profile_picture'    => $profilePic
+                    'profile_picture'    => $profilePic,
+                    'schedule_start'     => $scheduleStart,
+                    'schedule_end'       => $scheduleEnd,
+                    'therapist_id'       => $therapistId
                 ];
             }
         }
@@ -409,7 +424,7 @@ class Admin
     }
 
 
-    public function rescheduleBooking($php_update, $bookingdetailsid, $schedule_start, $schedule_end, $reason, $current_datetimestamp)
+    public function rescheduleBooking($php_update, $bookingdetailsid, $schedule_start, $schedule_end, $reason, $therapist_id, $current_datetimestamp)
     {
         // Update booking_details schedule_start and schedule_end for the given bookingdetailsid
         $updateData = [
@@ -418,6 +433,10 @@ class Admin
             'reschedule_reason' => $reason,
             'date_modified' => $current_datetimestamp
         ];
+
+        if ($therapist_id !== null) {
+            $updateData['therapist_id'] = $therapist_id;
+        }
 
         $filters = [
             'bookingdetailsid' => $bookingdetailsid

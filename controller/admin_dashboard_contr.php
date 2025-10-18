@@ -67,7 +67,8 @@ if (isset($_POST['action'])) {
             $schedule_start = trim($_POST['schedule_start']);
             $schedule_end = trim($_POST['schedule_end']);
             $reason = isset($_POST['reason']) ? trim($_POST['reason']) : null;
-            echo $Admin->rescheduleBooking($php_update, $bookingdetailsid, $schedule_start, $schedule_end, $reason, $current_datetimestamp);
+            $therapist_id = isset($_POST['therapist_id']) && $_POST['therapist_id'] !== '' ? trim($_POST['therapist_id']) : null;
+            echo $Admin->rescheduleBooking($php_update, $bookingdetailsid, $schedule_start, $schedule_end, $reason, $therapist_id, $current_datetimestamp);
             break;
     }
 }

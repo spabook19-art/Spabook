@@ -163,6 +163,149 @@ include_once '../../helper/admin_apps.php' ?>
     $('#admin_booking_request').addClass('active');
   }, 500);
 
+  let rescheduleModalInstance;
+  let rescheduleDurationMinutes = 60;
+
+  $(document).ready(function() {
+    rescheduleModalInstance = new bootstrap.Modal(document.getElementById('globalModal'));
+  });
+
+  function openRescheduleModal(bookingId, scheduleStart, scheduleEnd, serviceName, userName) {
+    const modalMarkup = `
+      <div class="modal-header" style="background-color: #C0967E;">
+        <h5 class="modal-title text-white"><i class="bi bi-calendar-event me-2"></i>Reschedule Booking</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="rescheduleForm">
+          <input type="hidden" id="rescheduleBookingId">
+          <div class="card mb-3 border-0 bg-light">
+            <div class="card-body">
+              <h6 class="card-title mb-3"><i class="bi bi-info-circle me-2"></i>Booking Information</h6>
+              <div class="mb-2">
+                <strong><i class="bi bi-person-fill me-1"></i>Client:</strong> <span id="rescheduleUserName">${userName || ''}</span>
+              </div>
+              <div class="mb-2">
+                <strong><i class="bi bi-briefcase-fill me-1"></i>Service:</strong> <span id="rescheduleServiceName">${serviceName || ''}</span>
+              </div>
+              <div class="mb-2">
+                <strong><i class="bi bi-clock-history me-1"></i>Current Schedule:</strong>
+                <span id="rescheduleCurrentDate" class="text-primary fw-semibold"></span>
+              </div>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="rescheduleDate" class="form-label"><i class="bi bi-calendar3 me-1"></i>New Date <span class="text-danger">*</span></label>
+            <input type="date" class="form-control" id="rescheduleDate" required>
+          </div>
+          <div class="mb-3">
+            <label for="rescheduleStartTime" class="form-label"><i class="bi bi-clock me-1"></i>New Start Time <span class="text-danger">*</span></label>
+            <input type="time" class="form-control" id="rescheduleStartTime" required>
+          </div>
+          <div class="mt-3">
+            <label for="rescheduleReason" class="form-label"><i class="bi bi-chat-left-text me-1"></i>Reason (optional)</label>
+            <textarea class="form-control" id="rescheduleReason" rows="3"></textarea>
+          </div>
+          <div id="rescheduleAlert" class="alert d-none" role="alert"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="bi bi-x-circle me-1"></i>Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="submitReschedule()"><i class="bi bi-check-circle me-1"></i>Save Changes</button>
+      </div>
+    `;
+
+    $('#globalModalContent').html(modalMarkup);
+
+    $('#rescheduleBookingId').val(bookingId);
+
+    const normalizedStart = scheduleStart && scheduleStart !== 'null' ? scheduleStart.split(' ') : [];
+    const normalizedEnd = scheduleEnd && scheduleEnd !== 'null' ? scheduleEnd.split(' ') : [];
+
+    const currentDate = normalizedStart[0] || '';
+    const currentStart = (normalizedStart[1] || '').slice(0, 5);
+    const currentEnd = (normalizedEnd[1] || '').slice(0, 5);
+
+    rescheduleDurationMinutes = 60;
+    if (normalizedStart.length && normalizedEnd.length) {
+      const startDateTime = new Date(`${normalizedStart[0]}T${(normalizedStart[1] || '').slice(0, 8)}`);
+      const endDateTime = new Date(`${normalizedEnd[0]}T${(normalizedEnd[1] || '').slice(0, 8)}`);
+      const diffMs = endDateTime - startDateTime;
+      if (!Number.isNaN(diffMs) && diffMs > 0) {
+        rescheduleDurationMinutes = Math.round(diffMs / 60000);
+      }
+    }
+
+    const formattedCurrentDate = currentDate || 'No date set';
+    const formattedCurrentStart = currentStart || 'No start time';
+    const formattedCurrentEnd = currentEnd || 'No end time';
+    $('#rescheduleCurrentDate').text(`${formattedCurrentDate} ${formattedCurrentStart} - ${formattedCurrentEnd}`.trim());
+
+    $('#rescheduleDate').val(currentDate);
+    $('#rescheduleStartTime').val(currentStart);
+    $('#rescheduleReason').val('');
+
+    const today = new Date().toISOString().split('T')[0];
+    $('#rescheduleDate').attr('min', today);
+
+    if (!rescheduleModalInstance) {
+      rescheduleModalInstance = new bootstrap.Modal(document.getElementById('globalModal'));
+    }
+
+    rescheduleModalInstance.show();
+  }
+
+  function submitReschedule() {
+    const bookingId = $('#rescheduleBookingId').val();
+    const date = $('#rescheduleDate').val();
+    const startTime = $('#rescheduleStartTime').val();
+    const reason = $('#rescheduleReason').val();
+
+    if (!date || !startTime) {
+      Swal.fire('Missing information', 'Please choose a date and start time.', 'warning');
+      return;
+    }
+
+    Swal.fire({
+      title: 'Confirm reschedule?',
+      text: 'The client will be moved to the new schedule.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, reschedule',
+      cancelButtonText: 'No'
+    }).then(result => {
+      if (!result.isConfirmed) {
+        return;
+      }
+
+      $.ajax({
+        url: '../../controller/admin_dashboard_contr.php',
+        type: 'POST',
+        dataType: 'json',
+        data: {
+          action: 'reschedule_booking',
+          bookingdetailsid: bookingId,
+          schedule_start: `${date} ${startTime}:00`,
+          schedule_end: `${date} ${endTime}:00`,
+          reason: reason,
+          therapist_id: therapistId
+        },
+        success: response => {
+          if (response.status === 'success') {
+            Swal.fire('Rescheduled', 'Booking schedule updated.', 'success');
+            rescheduleModalInstance.hide();
+            loadBookingRequests('Confirmed', '#bookingConfirmedTable');
+          } else {
+            Swal.fire('Error', response.message || 'Failed to reschedule.', 'error');
+          }
+        },
+        error: () => {
+          Swal.fire('Error', 'Could not contact the server.', 'error');
+        }
+      });
+    });
+  }
+
   // Load default tab on page load
   loadTableNavigation('Pending');
   loadBookingCounts();
@@ -275,6 +418,9 @@ include_once '../../helper/admin_apps.php' ?>
                 <button class="btn btn-secondary btn-sm px-3" onclick="updateStatus('Cancelled','${row.bookingdetailsid}');">Decline</button>`;
               break;
             case 'Confirmed':
+              actions += `
+                <button class="btn btn-outline-secondary btn-sm px-3" onclick="openRescheduleModal('${row.bookingdetailsid}', '${row.schedule_start || ''}', '${row.schedule_end || ''}', '${row.services_name}', '${row.user_name || ''}');">Reschedule</button>
+              `;
               actions += `<button class="btn btn-warning btn-sm px-3" onclick="updateStatus('On-Going','${row.bookingdetailsid}');">Proceed</button>`;
               break;
             case 'On-Going':
