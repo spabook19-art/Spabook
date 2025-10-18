@@ -50,6 +50,7 @@ composer.lock
 config.local.php
 database.local.php
 connection.local.php
+config/credentials.php
 *secret*.php
 *private*.php
 
